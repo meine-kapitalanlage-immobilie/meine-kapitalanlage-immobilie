@@ -20,7 +20,14 @@ const HUBSPOT_STAGE_TERMIN    = "6219734245"; // Termin vereinbart
 // Zugangsschluessel der HubSpot Private App liegt NUR auf dem Server in
 // hubspot-config.php (per .gitignore vom Repo ausgeschlossen), Inhalt:
 //   <?php const HUBSPOT_TOKEN = "pat-eu1-...";
-if (is_file(__DIR__ . "/hubspot-config.php")) require_once __DIR__ . "/hubspot-config.php"; // HubSpot-Formular (EU-Portal). Felder: firstname, lastname, email, phone, message, bewertung_kapitalanlage, score_kapitalanlage, nettoeinkommen_mtl, zu_versteuerndes_einkommen_zve_pa, eigenkapital, alter, beschaftigungsart
+// Fehler in dieser Datei duerfen die Lead-Strecke nie lahmlegen (ParseError wird abgefangen).
+if (is_file(__DIR__ . "/hubspot-config.php")) {
+    try { require_once __DIR__ . "/hubspot-config.php"; }
+    catch (\Throwable $e) {
+        @file_put_contents(__DIR__ . "/_leads/hubspot-fehler.log",
+            date("c") . " hubspot-config.php fehlerhaft: " . $e->getMessage() . "\n", FILE_APPEND | LOCK_EX);
+    }
+} // HubSpot-Formular (EU-Portal). Felder: firstname, lastname, email, phone, message, bewertung_kapitalanlage, score_kapitalanlage, nettoeinkommen_mtl, zu_versteuerndes_einkommen_zve_pa, eigenkapital, alter, beschaftigungsart
 
 // Lesbare Feld-Bezeichnungen fuer die Lead-Mail
 function lead_labels() {
