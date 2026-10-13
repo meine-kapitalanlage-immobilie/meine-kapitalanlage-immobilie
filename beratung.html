@@ -2770,6 +2770,22 @@ function calOeffnen(){
   if(b) b.textContent = "Kalender erneut oeffnen";
 }
 
+/* Termin-Button im Erfolgsfeld der Rueckrufbitte */
+function mkiTerminAusErfolg(btn){
+  if(window.Calendly){ calOeffnen(); return; }
+  btn.disabled=true; btn.textContent="Kalender wird geladen …";
+  if(!calLoaded) loadCalendly();
+  var t0=Date.now();
+  (function warte(){
+    if(window.Calendly){ btn.disabled=false; btn.textContent="Kalender erneut öffnen"; return; }
+    if(Date.now()-t0>8000){
+      btn.outerHTML='<a class="btn btn-jade btn-lg" href="'+CAL_URL+'" target="_blank" rel="noopener">Termin in neuem Tab wählen</a>';
+      return;
+    }
+    setTimeout(warte,250);
+  })();
+}
+
 /* Manueller Button bleibt als Fallback erhalten */
 var _loadCalBtn=document.getElementById("loadCal");
 if(_loadCalBtn) _loadCalBtn.addEventListener("click", function(){ calLoaded ? calOeffnen() : loadCalendly(); });
@@ -2788,6 +2804,15 @@ if(_loadCalBtn) _loadCalBtn.addEventListener("click", function(){ calLoaded ? ca
        schon gesendetes "termin_offen". */
     if(typeof _flushLead==="function") _flushLead("termin_gebucht", false);
     var pT=document.getElementById("panelT");
+    /* Buchung aus dem Erfolgsfeld der Rueckrufbitte: Bestaetigung dort anzeigen */
+    var okT=document.getElementById("okTermin");
+    if(okT && (!pT || pT.style.display==="none")){
+      okT.innerHTML='<p style="font-weight:700;color:var(--true-blue)">✓ Termin steht – ich freue mich auf Sie!</p>'+
+        '<p style="font-size:14px;margin-top:4px">Sie bekommen die Bestätigung per E-Mail.</p>';
+      okT.scrollIntoView({behavior:"smooth",block:"center"});
+      try{ if(window.dataLayer) dataLayer.push({event:"termin_gebucht"}); }catch(_){}
+      return;
+    }
     if(!pT) return;
     /* "Fast geschafft - waehlen Sie Ihren Wunschtermin" entfaellt jetzt */
     if(typeof _setCalMode==="function") _setCalMode("gebucht");
@@ -3099,12 +3124,17 @@ function _sendLead(mode){
       var fo=document.getElementById("formOk");
       fo.innerHTML = '<div class="big">✓</div><h3>Geschafft – ich melde mich bei Ihnen!</h3>'+
         '<p>Ihre Rückrufbitte ist eingegangen. Ich melde mich zeitnah persönlich – in der Regel noch am selben oder am nächsten Werktag. Eine Bestätigung liegt gleich in Ihrem Postfach.</p>'+
+        '<div id="okTermin" style="margin:18px auto 4px;max-width:420px">'+
+          '<p style="margin-bottom:10px"><b>Lieber gleich einen festen Termin?</b></p>'+
+          '<button class="btn btn-jade btn-lg" type="button" id="okTerminBtn">Termin jetzt buchen</button>'+
+          '<p style="font-size:12px;color:var(--muted);margin-top:8px">Optional. Für die Terminbuchung wird <strong>Calendly</strong> geladen (Datenübertragung in die USA möglich), Details in der <a href="datenschutz.html" target="_blank" style="display:inline;color:var(--true-blue)">Datenschutzerklärung</a>.</p>'+
+        '</div>'+
         '<p style="margin-top:6px">Sie möchten nicht warten? <a href="tel:+4916092085192" style="display:inline;color:var(--true-blue);font-weight:700">0160 92085192</a></p>';
       mkiGeschenke(fo, "nach_rueckruf", window.MKI_PATH==="unsicher");
       f.style.display="none"; fo.style.display="block";
-      /* Termin bleibt als freiwilliges Angebot darunter stehen */
-      var pT=document.getElementById("panelT");
-      if(pT){ _setCalMode("optional"); pT.style.display=""; }
+      /* Termin-Angebot sitzt jetzt direkt im Erfolgsfeld (kein separates Panel mehr) */
+      var tb=document.getElementById("okTerminBtn");
+      if(tb) tb.addEventListener("click", function(){ mkiTerminAusErfolg(tb); });
     })
     .catch(function(){
       err.style.display="block";
