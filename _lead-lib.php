@@ -11,8 +11,8 @@ const LEAD_BASISURL   = "https://meine-kapitalanlage-immobilie.de";
 const LEAD_STORE      = __DIR__ . "/_leads";
 
 // HubSpot (EU-Portal). Formular-GUID nach dem Anlegen des HubSpot-Formulars eintragen:
-const HUBSPOT_PORTAL_ID = "148893059";
-const HUBSPOT_FORM_GUID = "4e5bb7a8-b68e-40a3-8311-f9c3c0bad78a"; // HubSpot-Formular (EU-Portal). Felder: firstname, lastname, email, phone, message, bewertung_kapitalanlage, score_kapitalanlage, nettoeinkommen_mtl, zu_versteuerndes_einkommen_zve_pa, eigenkapital, alter, beschaftigungsart
+const HUBSPOT_PORTAL_ID = "149537457"; // neues Konto "Immobilie als Kapitalanlage" (info@meine-kapitalanlage-immobilie.de), seit 13.10.2026
+const HUBSPOT_FORM_GUID = "6192bfac-c361-4efb-af5e-16d19d3cf39b"; // HubSpot-Formular (EU-Portal). Felder: firstname, lastname, email, phone, message, bewertung_kapitalanlage, score_kapitalanlage, nettoeinkommen_mtl, zu_versteuerndes_einkommen_zve_pa, eigenkapital, alter, beschaftigungsart
 
 // Lesbare Feld-Bezeichnungen fuer die Lead-Mail
 function lead_labels() {
@@ -252,6 +252,14 @@ function lead_to_hubspot($data, $doi = "bestaetigt") {
     ]);
     $res = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $cerr = curl_error($ch);
     curl_close($ch);
-    return $code >= 200 && $code < 300;
+    $ok = $code >= 200 && $code < 300;
+    // Abgelehnte Uebergaben protokollieren (sonst faellt ein falscher Feldname nie auf)
+    if (!$ok) {
+        @file_put_contents(LEAD_STORE . "/hubspot-fehler.log",
+            date("c") . " HTTP " . $code . " " . $cerr . " " . substr((string)$res, 0, 1500) . "\n",
+            FILE_APPEND | LOCK_EX);
+    }
+    return $ok;
 }
