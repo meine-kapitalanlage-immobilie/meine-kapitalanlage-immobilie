@@ -123,6 +123,8 @@ header{background:rgba(13,27,46,.82);backdrop-filter:blur(14px);border-bottom:1p
 .brand-txt{border-left:1px solid rgba(180,214,212,.25);padding-left:14px}
 .brand-name{font-weight:800;font-size:15px;color:#fff;line-height:1.2}
 .brand-sub{font-size:10.5px;color:var(--jade);letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+/* Mobil: Kopfzeile kompakt halten, Unterzeile einzeilig (sticky Header kostet sonst ~1/8 des Bildschirms) */
+@media(max-width:600px){.head-in{padding:8px 16px;gap:10px}.brand{gap:10px}.brand img{height:28px}.brand-txt{padding-left:10px}.brand-sub{font-size:9.5px;letter-spacing:.06em;white-space:nowrap}}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;text-decoration:none;border:none;cursor:pointer;font-family:var(--sans);font-weight:800;border-radius:999px;transition:transform .18s,box-shadow .18s,background .18s;letter-spacing:.01em}
 .btn:hover{transform:translateY(-2px)}
 .btn-blue{background:var(--grad-cta);color:var(--blue-deep);box-shadow:0 8px 26px rgba(159,232,226,.35)}
