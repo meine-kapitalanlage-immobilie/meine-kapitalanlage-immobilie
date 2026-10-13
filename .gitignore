@@ -21,3 +21,6 @@ Einsteiger-Guide (Standalone).html
 
 # Dein PDF-Export (21 MB, ohne Textlayer) - im Web laeuft die selbst erzeugte Fassung
 Guide neu.pdf
+
+# HubSpot-Zugangsschluessel (Private App) - nur auf dem Server, nie ins Repo
+hubspot-config.php

@@ -12,7 +12,15 @@ const LEAD_STORE      = __DIR__ . "/_leads";
 
 // HubSpot (EU-Portal). Formular-GUID nach dem Anlegen des HubSpot-Formulars eintragen:
 const HUBSPOT_PORTAL_ID = "149537457"; // neues Konto "Immobilie als Kapitalanlage" (info@meine-kapitalanlage-immobilie.de), seit 13.10.2026
-const HUBSPOT_FORM_GUID = "6192bfac-c361-4efb-af5e-16d19d3cf39b"; // HubSpot-Formular (EU-Portal). Felder: firstname, lastname, email, phone, message, bewertung_kapitalanlage, score_kapitalanlage, nettoeinkommen_mtl, zu_versteuerndes_einkommen_zve_pa, eigenkapital, alter, beschaftigungsart
+const HUBSPOT_FORM_GUID = "6192bfac-c361-4efb-af5e-16d19d3cf39b";
+// Deal-Pipeline (Standard-Pipeline "Kapitalanlage")
+const HUBSPOT_PIPELINE        = "default";
+const HUBSPOT_STAGE_LEAD      = "6219734244"; // Lead eingegangen
+const HUBSPOT_STAGE_TERMIN    = "6219734245"; // Termin vereinbart
+// Zugangsschluessel der HubSpot Private App liegt NUR auf dem Server in
+// hubspot-config.php (per .gitignore vom Repo ausgeschlossen), Inhalt:
+//   <?php const HUBSPOT_TOKEN = "pat-eu1-...";
+if (is_file(__DIR__ . "/hubspot-config.php")) require_once __DIR__ . "/hubspot-config.php"; // HubSpot-Formular (EU-Portal). Felder: firstname, lastname, email, phone, message, bewertung_kapitalanlage, score_kapitalanlage, nettoeinkommen_mtl, zu_versteuerndes_einkommen_zve_pa, eigenkapital, alter, beschaftigungsart
 
 // Lesbare Feld-Bezeichnungen fuer die Lead-Mail
 function lead_labels() {
@@ -261,5 +269,74 @@ function lead_to_hubspot($data, $doi = "bestaetigt") {
             date("c") . " HTTP " . $code . " " . $cerr . " " . substr((string)$res, 0, 1500) . "\n",
             FILE_APPEND | LOCK_EX);
     }
+    // Deal nur fuer echte Kontaktanfragen (Rueckruf/Termin), nicht fuer reine Guide-Downloads
+    if (($data["leadmagnet"] ?? "") === "") lead_hubspot_deal($data);
     return $ok;
+}
+
+// ---------- HubSpot CRM-API (Private App) ----------
+function hs_api($method, $path, $body = null) {
+    if (!defined("HUBSPOT_TOKEN") || HUBSPOT_TOKEN === "") return [0, null];
+    $ch = curl_init("https://api.hubapi.com" . $path);
+    $opts = [
+        CURLOPT_CUSTOMREQUEST  => $method,
+        CURLOPT_HTTPHEADER     => ["Authorization: Bearer " . HUBSPOT_TOKEN, "Content-Type: application/json"],
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 10,
+    ];
+    if ($body !== null) $opts[CURLOPT_POSTFIELDS] = json_encode($body);
+    curl_setopt_array($ch, $opts);
+    $res  = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($code < 200 || $code >= 300) {
+        if (!is_dir(LEAD_STORE)) @mkdir(LEAD_STORE, 0700, true);
+        @file_put_contents(LEAD_STORE . "/hubspot-fehler.log",
+            date("c") . " CRM " . $method . " " . $path . " HTTP " . $code . " " . substr((string)$res, 0, 800) . "\n",
+            FILE_APPEND | LOCK_EX);
+    }
+    return [$code, json_decode((string)$res, true)];
+}
+
+// Legt pro Kontakt genau einen Deal an. Ist schon einer da und wurde inzwischen
+// ein Termin gebucht, wird er von "Lead eingegangen" auf "Termin vereinbart" gehoben.
+function lead_hubspot_deal($data) {
+    if (!defined("HUBSPOT_TOKEN") || !function_exists("curl_init")) return;
+    $email = trim((string)($data["email"] ?? ""));
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return;
+    $termin = (stripos((string)($data["terminstatus"] ?? ""), "Termin gebucht") !== false);
+    $stage  = $termin ? HUBSPOT_STAGE_TERMIN : HUBSPOT_STAGE_LEAD;
+
+    // Kontakt per E-Mail finden oder anlegen (die Formular-Uebergabe fuehrt per E-Mail zusammen)
+    [$c, $r] = hs_api("POST", "/crm/v3/objects/contacts/batch/upsert", [
+        "inputs" => [["idProperty" => "email", "id" => $email, "properties" => ["email" => $email]]],
+    ]);
+    $cid = $r["results"][0]["id"] ?? null;
+    if (!$cid) return;
+
+    // Gibt es schon einen Deal zu diesem Kontakt?
+    [$c, $r] = hs_api("GET", "/crm/v4/objects/contacts/" . $cid . "/associations/deals");
+    $dealId = $r["results"][0]["toObjectId"] ?? null;
+    if ($dealId) {
+        if ($termin) {
+            [$c, $d] = hs_api("GET", "/crm/v3/objects/deals/" . $dealId . "?properties=dealstage");
+            if (($d["properties"]["dealstage"] ?? "") === HUBSPOT_STAGE_LEAD) {
+                hs_api("PATCH", "/crm/v3/objects/deals/" . $dealId, ["properties" => ["dealstage" => HUBSPOT_STAGE_TERMIN]]);
+            }
+        }
+        return;
+    }
+
+    $name = trim((string)($data["name"] ?? "")) ?: $email;
+    hs_api("POST", "/crm/v3/objects/deals", [
+        "properties" => [
+            "dealname"  => $name . " – Kapitalanlage",
+            "pipeline"  => HUBSPOT_PIPELINE,
+            "dealstage" => $stage,
+        ],
+        "associations" => [[
+            "to"    => ["id" => $cid],
+            "types" => [["associationCategory" => "HUBSPOT_DEFINED", "associationTypeId" => 3]],
+        ]],
+    ]);
 }
