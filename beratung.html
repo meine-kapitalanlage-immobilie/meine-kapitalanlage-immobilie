@@ -279,15 +279,15 @@ section{padding:84px 0;scroll-margin-top:76px}
 @keyframes nopeSweep{from{transform:translateX(-130%)}to{transform:translateX(130%)}}
 .usp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
 .usp{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:28px 22px;transition:transform .2s,box-shadow .2s}
-.kflip{perspective:1000px;height:262px;cursor:pointer;border-radius:var(--r);--kf:var(--true-blue);--kf-soft:var(--jade-20)}
+.kflip{perspective:1000px;min-height:262px;display:grid;cursor:pointer;border-radius:var(--r);--kf:var(--true-blue);--kf-soft:var(--jade-20)}
 .kflip:nth-child(1){--kf:#2C517F;--kf-soft:#EDF2F8}
 .kflip:nth-child(2){--kf:#1F7A6B;--kf-soft:#E9F5F2}
 .kflip:nth-child(3){--kf:#7A5B8F;--kf-soft:#F3EEF7}
 .kflip:nth-child(4){--kf:#B07A2B;--kf-soft:#FAF2E4}
 .kflip:focus-visible{outline:2px solid var(--jade);outline-offset:3px}
-.kflip-in{position:relative;width:100%;height:100%;transition:transform .55s cubic-bezier(.4,.15,.2,1);transform-style:preserve-3d}
+.kflip-in{position:relative;display:grid;width:100%;min-height:262px;transition:transform .55s cubic-bezier(.4,.15,.2,1);transform-style:preserve-3d}
 .kflip.on .kflip-in{transform:rotateY(180deg)}
-.kflip-face{position:absolute;inset:0;-webkit-backface-visibility:hidden;backface-visibility:hidden;border-radius:var(--r);padding:28px 22px;box-sizing:border-box;overflow:hidden;background:var(--paper);border:1px solid var(--line);display:flex;flex-direction:column}
+.kflip-face{position:relative;grid-area:1/1;min-width:0;-webkit-backface-visibility:hidden;backface-visibility:hidden;border-radius:var(--r);padding:28px 22px;box-sizing:border-box;overflow:hidden;background:var(--paper);border:1px solid var(--line);display:flex;flex-direction:column}
 .kflip-front{align-items:center;justify-content:center;text-align:center;gap:10px;border:1.5px dashed var(--kf);background:var(--kf-soft)}
 .kflip-back{transform:rotateY(180deg);border-top:3px solid var(--kf)}
 .kflip-num{font-family:var(--serif);font-size:40px;font-weight:800;color:var(--kf);opacity:.22;line-height:1}
@@ -594,6 +594,25 @@ footer a:hover{color:var(--jade)}
   section{padding:64px 0}
 }
 
+
+/* ---------- Mobil-Absicherung fuer alle Handygroessen (320-430 px) ----------
+   Grid-/Flex-Kinder duerfen schmaler werden als ihr laengstes Wort, lange
+   deutsche Woerter werden sauber getrennt statt ueber den Rand zu laufen. */
+.usp,.kflip,.fgrid>*,.foot-grid>*,.qual-grid>*,.obj-grid>*,.steps3>*,.about-grid>*{min-width:0}
+@media(max-width:720px){
+  h1,h2,h3,h4,p,li{overflow-wrap:break-word}
+  p,li,.cmp2-txt{-webkit-hyphens:auto;hyphens:auto}
+}
+@media(max-width:520px){
+  /* Kacheln einspaltig: zwei Spalten a ~160 px sind fuer diese Texte zu schmal */
+  .usp-grid{grid-template-columns:1fr}
+  .kflip,.kflip-in{min-height:200px}
+}
+@media(max-width:360px){
+  .heute-card{padding:20px 14px!important}
+  .heute-card .hv{font-size:25px!important}
+  .heute-card > div > div{gap:10px!important;padding:12px!important}
+}
 
 /* ---------- Consent-Banner ---------- */
 #cc-bar{position:fixed;left:0;right:0;bottom:0;z-index:1000;background:rgba(13,27,46,.97);backdrop-filter:blur(12px);border-top:1px solid rgba(180,214,212,.22);box-shadow:0 -18px 50px rgba(13,27,46,.5);color:var(--t-on-dark);padding:20px 0;transform:translateY(120%);transition:transform .4s cubic-bezier(.16,1,.3,1)}
