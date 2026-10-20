@@ -178,7 +178,7 @@ function lead_send_guide_direct($email, $name) {
 
 // Bestaetigung an den Interessenten: Rueckrufbitte ist da + die beiden Geschenke.
 // Wird nach dem Double-Opt-In verschickt bzw. dort, wo kein DOI noetig ist.
-function lead_send_danke($email, $name, $saLink = "", $termin = false) {
+function lead_send_danke($email, $name, $saLink = "", $termin = false, $finanz = false) {
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return false;
     $anrede = trim((string)$name) !== "" ? "Hallo " . $name . "," : "Hallo,";
     $guide   = LEAD_BASISURL . "/einsteiger-guide-kapitalanlage-2026.pdf";
@@ -193,8 +193,12 @@ function lead_send_danke($email, $name, $saLink = "", $termin = false) {
     }
     if ($saLink !== "") {
         $text .= "IHRE DIGITALE SELBSTAUSKUNFT\n"
-               . "Wenn Sie moechten, koennen Sie schon vorab Ihre Selbstauskunft ausfuellen (ca. 10 Minuten).\n"
-               . "Dann kann ich Ihre Moeglichkeiten zum Gespraech bereits konkret durchrechnen:\n\n"
+               . ($finanz
+                  ? "Damit ich Ihre Finanzierungsoptionen schnell pruefen kann: Bitte fuellen Sie Ihre Selbstauskunft\n"
+                  . "am besten schon VOR unserem Telefonat bzw. Termin aus und schicken Sie sie ab (ca. 10 Minuten).\n"
+                  . "Das beschleunigt den Prozess deutlich - wir koennen dann direkt ueber konkrete Angebote sprechen:\n\n"
+                  : "Wenn Sie moechten, koennen Sie schon vorab Ihre Selbstauskunft ausfuellen (ca. 10 Minuten).\n"
+                  . "Dann kann ich Ihre Moeglichkeiten zum Gespraech bereits konkret durchrechnen:\n\n")
                . "   " . $saLink . "\n\n"
                . "Der Link ist nur fuer Sie bestimmt. Ihre Eingaben werden zwischengespeichert - Sie koennen\n"
                . "jederzeit unterbrechen, spaeter ueber diesen Link weitermachen und am Ende absenden.\n"
@@ -412,28 +416,32 @@ function sa_create($t, $data) {
             "name"  => (string)($data["name"] ?? ""),
             "email" => (string)($data["email"] ?? ""),
             "phone" => (string)($data["phone"] ?? ""),
+            "thema" => (string)($data["thema"] ?? ""),
         ],
         "draft"   => new stdClass(),
     ]);
 }
 function sa_is_done($t) { $r = sa_load($t); return $r && ($r["status"] ?? "") === "uebermittelt"; }
 
-// Mail mit Dateianhang (Selbstauskunft-PDF an den Berater)
-function lead_mail_attach($to, $betreff, $text, $replyTo, $dateiname, $bytes) {
+// Mail mit Dateianhaengen (Selbstauskunft-PDFs an den Berater)
+// $anhaenge: [[dateiname, bytes], ...]
+function lead_mail_attach($to, $betreff, $text, $replyTo, $anhaenge) {
     if (!filter_var($to, FILTER_VALIDATE_EMAIL)) return false;
     $grenze = "=_mki_" . bin2hex(random_bytes(8));
     $h  = "From: " . LEAD_ABSENDER . "\r\n";
     if ($replyTo && filter_var($replyTo, FILTER_VALIDATE_EMAIL)) $h .= "Reply-To: " . $replyTo . "\r\n";
     $h .= "MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=\"" . $grenze . "\"\r\n";
-    $dn = preg_replace('/[^A-Za-z0-9._-]/', '_', $dateiname);
     $body  = "--" . $grenze . "\r\n"
            . "Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n"
-           . $text . "\r\n\r\n"
-           . "--" . $grenze . "\r\n"
-           . "Content-Type: application/pdf; name=\"" . $dn . "\"\r\n"
-           . "Content-Transfer-Encoding: base64\r\n"
-           . "Content-Disposition: attachment; filename=\"" . $dn . "\"\r\n\r\n"
-           . chunk_split(base64_encode($bytes)) . "\r\n"
-           . "--" . $grenze . "--\r\n";
+           . $text . "\r\n\r\n";
+    foreach ($anhaenge as $a) {
+        $dn = preg_replace('/[^A-Za-z0-9._-]/', '_', (string)$a[0]);
+        $body .= "--" . $grenze . "\r\n"
+               . "Content-Type: application/pdf; name=\"" . $dn . "\"\r\n"
+               . "Content-Transfer-Encoding: base64\r\n"
+               . "Content-Disposition: attachment; filename=\"" . $dn . "\"\r\n\r\n"
+               . chunk_split(base64_encode((string)$a[1])) . "\r\n";
+    }
+    $body .= "--" . $grenze . "--\r\n";
     return lead_mail($to, $betreff, $body, $h);
 }

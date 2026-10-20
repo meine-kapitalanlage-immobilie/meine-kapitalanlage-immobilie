@@ -44,6 +44,7 @@ $leadmagnet   = strtolower($data["leadmagnet"] ?? "");
 $saToken = strtolower(trim((string)($data["sa_token"] ?? "")));
 unset($data["sa_token"]);
 $saNeu = false; $saLink = "";
+$finanz = stripos((string)($data["thema"] ?? ""), "Finanzierung pruefen") !== false;
 if ($leadmagnet === "" && sa_valid_token($saToken)) {
     $saNeu = sa_create($saToken, $data);
     if ($rec = sa_load($saToken)) {
@@ -69,7 +70,7 @@ if ($terminwunsch === "ja") {
     // Statusupdate und soll keine zweite Mail ausloesen.
     if ($saLink !== "") {
         // Bestaetigung + Selbstauskunft-Link genau einmal pro Lead, auch wenn direkt gebucht wurde
-        if ($saNeu) lead_send_danke($email, $name, $saLink, $tstat === "termin_gebucht");
+        if ($saNeu) lead_send_danke($email, $name, $saLink, $tstat === "termin_gebucht", $finanz);
     } elseif ($tstat !== "termin_gebucht") {
         lead_send_danke($email, $name);
     }
@@ -100,7 +101,7 @@ if ($leadmagnet !== "" && strtolower($data["direkt"] ?? "") === "ja") {
 if ($leadmagnet === "") {
     lead_notify_robin($data, " (Rueckruf)");
     lead_to_hubspot($data, "entfaellt - Rueckrufbitte direkt ueber das Formular");
-    if ($saLink === "" || $saNeu) lead_send_danke($email, $name, $saLink, false);
+    if ($saLink === "" || $saNeu) lead_send_danke($email, $name, $saLink, false, $finanz);
     echo json_encode(["ok" => true, "confirm" => false]); exit;
 }
 

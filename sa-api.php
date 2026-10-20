@@ -3,7 +3,7 @@
 //  Digitale Selbstauskunft – Schnittstelle fuer selbstauskunft.html
 //  GET  ?t=TOKEN                  -> Status, Vorbelegung aus dem Lead, Entwurf
 //  POST action=save   t, draft    -> Entwurf zwischenspeichern
-//  POST action=submit t, pdf(Datei), zusammenfassung, name
+//  POST action=submit t, pdf(Datei), pdf2(Ergaenzungsblatt, optional), zusammenfassung, name
 //                                 -> PDF per Mail an den Berater, HubSpot-Phase
 //                                    anheben, Entwurf loeschen
 //  Zugriff nur ueber den persoenlichen 32-stelligen Token.
@@ -67,7 +67,13 @@ if ($action === "submit") {
     $email = (string)($lead["email"] ?? "");
     $zus   = trim(strip_tags((string)($_POST["zusammenfassung"] ?? "")));
     $zus   = mb_substr($zus, 0, 20000);
-    $datei = "Selbstauskunft_" . preg_replace('/[^A-Za-z0-9]+/', '_', $name ?: "Kunde") . "_" . date("Y-m-d") . ".pdf";
+    $basis = preg_replace('/[^A-Za-z0-9]+/', '_', $name ?: "Kunde") . "_" . date("Y-m-d");
+    $anhaenge = [["Selbstauskunft_" . $basis . ".pdf", $bytes]];
+    // Optional: Ergaenzungsblatt mit allem, was die Bonnfinanz-Vorlage nicht abbildet
+    if (!empty($_FILES["pdf2"]) && ($_FILES["pdf2"]["error"] ?? 1) === UPLOAD_ERR_OK && $_FILES["pdf2"]["size"] <= 4 * 1024 * 1024) {
+        $b2 = (string)file_get_contents($_FILES["pdf2"]["tmp_name"]);
+        if (substr($b2, 0, 5) === "%PDF-") $anhaenge[] = ["Selbstauskunft_Ergaenzung_" . $basis . ".pdf", $b2];
+    }
     $erneut = !empty($rec["submitted_at"]);
 
     $text = "Neue digitale Selbstauskunft" . ($erneut ? " (AKTUALISIERTE FASSUNG)" : "") . "\n"
@@ -77,10 +83,12 @@ if ($action === "submit") {
           . "Telefon: " . ($lead["phone"] ?? "") . "\n"
           . "Eingang: " . date("d.m.Y H:i") . " Uhr\n"
           . "==================================================\n\n"
-          . "Die ausgefuellte Selbstauskunft haengt als PDF an (Bonnfinanz-Vorlage, Felder weiterhin bearbeitbar).\n\n"
+          . "Anhang 1: Selbstauskunft (Bonnfinanz-Vorlage, Felder weiterhin bearbeitbar) - fuers CRM.\n"
+          . (count($anhaenge) > 1 ? "Anhang 2: Ergaenzungsblatt - Vorhaben, Finanzierungswuensche und Kurzauswertung, nur was nicht in der Vorlage steht.\n" : "")
+          . "\n"
           . ($zus !== "" ? "KURZUEBERSICHT\n" . $zus . "\n" : "");
     $betreff = "Selbstauskunft" . ($erneut ? " (aktualisiert)" : "") . " - " . ($name ?: $email);
-    $ok = lead_mail_attach(LEAD_EMPFAENGER, lead_subject_encode($betreff), $text, $email, $datei, $bytes);
+    $ok = lead_mail_attach(LEAD_EMPFAENGER, lead_subject_encode($betreff), $text, $email, $anhaenge);
     if (!$ok) sa_out(["ok" => false, "error" => "mail"], 500);
 
     // Sensible Angaben nicht laenger als noetig auf dem Server halten

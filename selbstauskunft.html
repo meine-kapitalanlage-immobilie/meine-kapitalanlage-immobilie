@@ -285,8 +285,9 @@
               <option>Eine komplett gemanagte Immobilie aus dem Angebot</option>
               <option>Eine eigene Immobilie – ich habe schon ein Objekt im Blick</option>
               <option>Eine eigene Immobilie – ich suche noch</option>
+              <option>Ich habe bereits eine Immobilie und möchte nur die Finanzierung prüfen</option>
               <option>Noch offen – ich möchte erst meine Möglichkeiten kennen</option></select></div>
-          <div class="field span2" data-if="vh_objekt:in:Eine eigene Immobilie – ich habe schon ein Objekt im Blick"><label for="vh_details">Welches Objekt? <span class="opt">(Adresse, Link oder Beschreibung)</span></label><input type="text" name="vh_details" id="vh_details"></div>
+          <div class="field span2" data-if="vh_objekt:in:Eine eigene Immobilie – ich habe schon ein Objekt im Blick|Ich habe bereits eine Immobilie und möchte nur die Finanzierung prüfen"><label for="vh_details">Welches Objekt? <span class="opt">(Adresse, Link oder Beschreibung)</span></label><input type="text" name="vh_details" id="vh_details"></div>
           <div class="field"><label for="vh_preis">Kaufpreis bzw. Budget <span class="opt">(ca.)</span></label><div class="eur"><input type="text" inputmode="decimal" name="vh_preis" id="vh_preis"></div></div>
           <div class="field"><label for="vh_ek">Eigenkapital, das Sie einsetzen möchten</label><div class="eur"><input type="text" inputmode="decimal" name="vh_ek" id="vh_ek"></div></div>
           <div class="field"><label for="vh_aufwand">Max. monatlicher Eigenaufwand <span class="opt">(nach Steuern)</span></label><div class="eur"><input type="text" inputmode="decimal" name="vh_aufwand" id="vh_aufwand"></div></div>
@@ -372,7 +373,7 @@ var TOKEN = (new URLSearchParams(location.search).get("t") || "").toLowerCase();
 var API = "/sa-api.php";
 var CAL_URL = "https://calendly.com/robinjaenicke/kapitalanlage-erstgespraech";
 var form = document.getElementById("sa");
-var schritt = 1, MAX = 4, prefill = {};
+var schritt = 1, MAX = 4, prefill = {}, istErneut = false;
 
 /* ---------- Hilfen ---------- */
 function $(id){ return document.getElementById(id); }
@@ -391,6 +392,10 @@ function sel(name, label, list, extra, cls){
 }
 function num(s){ s = String(s || "").replace(/[^\d,.-]/g, ""); if (!s) return 0; s = s.replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", "."); var n = parseFloat(s); return isNaN(n) ? 0 : n; }
 function eur(n){ return n ? n.toLocaleString("de-DE", {maximumFractionDigits: 2}) : ""; }
+function pdfText(v){
+  return String(v).replace(/[\u2010-\u2012]/g, "-").replace(/[\u00A0\u2009\u202F]/g, " ")
+    .replace(/[^\n\x20-\x7E\xA1-\xFF\u20AC\u2013\u2014\u201E\u201C\u201D\u201A\u2018\u2019\u2022\u2026]/g, "");
+}
 function datum(iso){ var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""); return m ? m[3] + "." + m[2] + "." + m[1] : (iso || ""); }
 
 /* ---------- Personen ---------- */
@@ -653,7 +658,7 @@ async function pdfErstellen(){
   var bytes = await fetch("/selbstauskunft-vorlage.pdf").then(function(r){ if (!r.ok) throw new Error("vorlage"); return r.arrayBuffer(); });
   var doc = await PDFLib.PDFDocument.load(bytes);
   var f = doc.getForm();
-  function T(name, v, gross){ if (v === undefined || v === null || v === "" || v === false) return; try { var x = f.getTextField(name); x.setText(String(v)); if (gross) x.setFontSize(8); } catch (e) { console.warn("Feld", name, e); } }
+  function T(name, v, gross){ if (v === undefined || v === null || v === "" || v === false) return; try { var x = f.getTextField(name); x.setText(pdfText(v)); if (gross) x.setFontSize(8); } catch (e) { console.warn("Feld", name, e); } }
   function C(name, an){ if (!an) return; try { f.getCheckBox(name).check(); } catch (e) { console.warn("Feld", name, e); } }
   function E(name, v){ var n = num(v); if (n) T(name, eur(n)); }
   var zwei = wert("personen") === "2";
@@ -780,7 +785,7 @@ async function pdfErstellen(){
   C("sv_Bestehen_Bürgschaften_oder_Verpflichtungen_gegenüber_Drit", bg === "nein");
   C("sv_Bestehen_Bürgschaften_oder_Verpflichtungen_gegenüber_Drit_2", bg === "ja");
   if (bg === "ja") T("sv_Bestehen_Bürgschaften_oder_Verpflichtungen_gegenüber_Drit_3", wert("buerg_txt"));
-  T("s9_weitere_angaben", vorhabenText(), true);
+  if (vorhabenText()) T("s9_weitere_angaben", "Vorhaben und Finanzierungswünsche: siehe Ergänzungsblatt (separates PDF).", true);
   T("bank_Name_der_Bank_1", wert("bank_name"));
   T("bank_IBAN_1", wert("iban").toUpperCase());
   T("ort_datum", [wert("ort"), heute].filter(Boolean).join(", "));
@@ -788,6 +793,132 @@ async function pdfErstellen(){
   var fuss = [vollerName(1), "digital erfasst am " + heute].filter(Boolean).join(" · ");
   ["fusszeile", "fusszeile_2", "fusszeile_3", "fusszeile_4", "fusszeile_5"].forEach(function(nm){ T(nm, fuss); });
 
+  return await doc.save();
+}
+
+/* ---------- Ergaenzungsblatt: nur, was die Bonnfinanz-Vorlage nicht abbildet ---------- */
+function alterAus(iso){
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""); if (!m) return null;
+  var g = new Date(+m[1], +m[2] - 1, +m[3]), h = new Date(), a = h.getFullYear() - g.getFullYear();
+  if (h.getMonth() < g.getMonth() || (h.getMonth() === g.getMonth() && h.getDate() < g.getDate())) a--;
+  return a;
+}
+function summeListe(anzahlFeld, muster){
+  var n = parseInt(wert(anzahlFeld), 10) || 0, s_ = 0;
+  for (var i = 1; i <= n; i++) s_ += num(wert(muster.replace("#", i)));
+  return s_;
+}
+async function ergaenzungErstellen(erneut){
+  var L = PDFLib, doc = await L.PDFDocument.create();
+  var font = await doc.embedFont(L.StandardFonts.Helvetica), bold = await doc.embedFont(L.StandardFonts.HelveticaBold);
+  var NAVY = L.rgb(0.071, 0.157, 0.267), BLUE = L.rgb(0.173, 0.318, 0.498), INK = L.rgb(0.133, 0.208, 0.298),
+      MUTED = L.rgb(0.37, 0.44, 0.54), LINE = L.rgb(0.88, 0.92, 0.92), JADE = L.rgb(0.62, 0.91, 0.89), CREAM = L.rgb(0.94, 0.97, 0.97);
+  var W = 595.28, H = 841.89, M = 50, page, y;
+  var zwei = wert("personen") === "2", heute = new Date();
+  var name1 = [wert("p1_vorname"), wert("p1_nachname")].filter(Boolean).join(" ") || "Antragsteller/in";
+  var name2 = [wert("p2_vorname"), wert("p2_nachname")].filter(Boolean).join(" ") || "Partner/in";
+
+  function umbruch(text, f, size, breite){
+    var out = [];
+    pdfText(text).split("\n").forEach(function(absatz){
+      var zeile = "";
+      absatz.split(/\s+/).forEach(function(w){
+        var test = zeile ? zeile + " " + w : w;
+        if (f.widthOfTextAtSize(test, size) <= breite) zeile = test;
+        else { if (zeile) out.push(zeile); zeile = w; }
+      });
+      out.push(zeile);
+    });
+    return out;
+  }
+  function neueSeite(){
+    page = doc.addPage([W, H]);
+    page.drawRectangle({x: 0, y: H - 64, width: W, height: 64, color: NAVY});
+    page.drawText("Ergänzung zur Selbstauskunft", {x: M, y: H - 34, size: 15, font: bold, color: L.rgb(1, 1, 1)});
+    page.drawText(pdfText("Robin Jänicke · Kapitalanlage-Immobilien · " + (zwei ? name1 + " / " + name2 : name1)), {x: M, y: H - 51, size: 9, font: font, color: JADE});
+    y = H - 92;
+  }
+  function platz(h){ if (y - h < 60) neueSeite(); }
+  function abschnitt(nr, titel){
+    platz(46);
+    y -= 8;
+    page.drawText(nr, {x: M, y: y, size: 12.5, font: bold, color: L.rgb(0.5, 0.71, 0.77)});
+    page.drawText(pdfText(titel), {x: M + 16, y: y, size: 12.5, font: bold, color: BLUE});
+    y -= 7; page.drawLine({start: {x: M, y: y}, end: {x: W - M, y: y}, thickness: 0.8, color: LINE});
+    y -= 16;
+  }
+  function zeile(label, text, hervor){
+    if (text === "" || text === null || text === undefined) return;
+    var lb = umbruch(label, font, 9, 165), tx = umbruch(String(text), hervor ? bold : font, 10, W - 2 * M - 180);
+    var n = Math.max(lb.length, tx.length), h = n * 13 + 5;
+    platz(h);
+    if (hervor) page.drawRectangle({x: M - 4, y: y - h + 11, width: W - 2 * M + 8, height: h, color: CREAM});
+    lb.forEach(function(z, i){ page.drawText(z, {x: M, y: y - i * 13, size: 9, font: font, color: MUTED}); });
+    tx.forEach(function(z, i){ page.drawText(z, {x: M + 180, y: y - i * 13, size: 10, font: hervor ? bold : font, color: INK}); });
+    y -= h;
+  }
+  function hinweis(text){
+    umbruch(text, font, 8.5, W - 2 * M).forEach(function(z){ platz(12); page.drawText(z, {x: M, y: y, size: 8.5, font: font, color: MUTED}); y -= 12; });
+    y -= 4;
+  }
+  function e(n){ return n ? eur(n) + " €" : ""; }
+  function proPerson(f1, f2){
+    var a = f1(), b = zwei ? f2() : 0;
+    if (!a && !b) return "";
+    return zwei ? name1 + ": " + (eur(a) || "0") + " €  ·  " + name2 + ": " + (eur(b) || "0") + " €  ·  gesamt " + eur(a + b) + " €" : eur(a) + " €";
+  }
+
+  neueSeite();
+  hinweis("Dieses Blatt ergänzt die Selbstauskunft (Bonnfinanz-Vorlage) und enthält nur Angaben, die dort nicht abgefragt werden, sowie eine Kurzauswertung. Alle Werte stammen aus den Kundenangaben und sind ungeprüft.");
+
+  // 1 Vorhaben
+  abschnitt("1", "Vorhaben & Finanzierungswünsche");
+  var vor = [
+    ["Worum geht es?", wert("vh_objekt")], ["Objekt", wert("vh_details")],
+    ["Kaufpreis bzw. Budget (ca.)", e(num(wert("vh_preis")))], ["Einzusetzendes Eigenkapital", e(num(wert("vh_ek")))],
+    ["Max. monatlicher Eigenaufwand (nach Steuern)", e(num(wert("vh_aufwand")))],
+    ["Zinsbindung", wert("vh_zb")], ["Anfängliche Tilgung", wert("vh_tilgung")], ["Sondertilgungen", wert("vh_sonder")],
+    ["Zeitplan", wert("vh_zeit")], ["Anfragen bei Banken", wert("vh_banken")], ["Was sonst noch wichtig ist", wert("vh_wuensche")]
+  ];
+  var hatVor = false;
+  vor.forEach(function(r){ if (r[1]) { hatVor = true; zeile(r[0], r[1]); } });
+  if (!hatVor) hinweis("Keine Angaben zum Vorhaben.");
+
+  // 2 Kurzauswertung
+  abschnitt("2", "Kurzauswertung Haushalt (berechnet)");
+  var E1 = sumE(1), E2 = zwei ? sumE(2) : 0, A1 = sumA(1), A2 = zwei ? sumA(2) : 0;
+  zeile("Einkünfte netto / Monat", proPerson(function(){ return E1; }, function(){ return E2; }));
+  zeile("Ausgaben / Monat (Abschnitt 3)", proPerson(function(){ return A1; }, function(){ return A2; }));
+  if (E1 + E2 || A1 + A2) zeile("Monatlicher Überschuss vor neuer Finanzierung", eur(E1 + E2 - A1 - A2) + " €", true);
+  var kr = summeListe("kr_anzahl", "c#_rate");
+  if (kr) zeile("Kreditraten laut Abschnitt 7", eur(kr) + " € / Monat" + (num(wert("raten_1")) + num(wert("raten_2")) ? "" : "  (in den Ausgaben nicht als Raten angegeben – bitte prüfen)"));
+  var liquide = summeListe("bank_anzahl", "b#_saldo") + summeListe("bs_anzahl", "s#_saldo");
+  zeile("Liquide Mittel (Guthaben + Bausparen)", e(liquide));
+  zeile("Sonstiges Vermögen", e(summeListe("vm_anzahl", "v#_wert")));
+  zeile("Rückkaufswerte Versicherungen", e(summeListe("vs_anzahl", "w#_rk")));
+  var iw = summeListe("im_anzahl", "i#_wert"), ir = summeListe("im_anzahl", "i#_rest");
+  if (iw || ir) zeile("Immobilien: Verkehrswerte / Restschulden", (eur(iw) || "0") + " € / " + (eur(ir) || "0") + " €");
+  zeile("Kreditsalden laut Abschnitt 7", e(summeListe("kr_anzahl", "c#_saldo")));
+  var ek = num(wert("vh_ek"));
+  if (ek && liquide) zeile("Eigenkapital-Einsatz", eur(ek) + " € von " + eur(liquide) + " € liquiden Mitteln (" + Math.round(ek / liquide * 100) + " %)");
+  [1].concat(zwei ? [2] : []).forEach(function(n){
+    var a = alterAus(wert("p" + n + "_geburtsdatum")); if (a === null) return;
+    var rente = wert("r_beginn_" + n) === "in einem anderen Alter" ? (parseInt(wert("r_alter_" + n), 10) || 67) : 67;
+    var txt = a + " Jahre" + (wert("p" + n + "_besch") === "Ruhestand" ? " (im Ruhestand)" : (rente > a ? " · noch ca. " + (rente - a) + " Jahre bis zur Rente mit " + rente : ""));
+    zeile("Alter " + (n === 1 ? name1 : name2), txt);
+  });
+
+  // 3 Uebermittlung
+  abschnitt("3", "Übermittlung");
+  zeile("Eingang", heute.toLocaleDateString("de-DE") + ", " + heute.toLocaleTimeString("de-DE", {hour: "2-digit", minute: "2-digit"}) + " Uhr – digital über persönlichen Link");
+  zeile("Fassung", erneut ? "Aktualisierte Fassung (eine frühere Selbstauskunft wurde bereits übermittelt)" : "Erstfassung");
+  zeile("Haushalt", (zwei ? "2 Antragsteller" : "1 Antragsteller") + " · Kinder: " + (wert("kinder_anzahl") || "0"));
+  zeile("Einwilligung Weitergabe an Produktpartner", [name1 + ": " + (wert("einw_1") || "–")].concat(zwei ? [name2 + ": " + (wert("einw_2") || "–")] : []).join("  ·  "));
+
+  var seiten = doc.getPages();
+  seiten.forEach(function(pg, i){
+    pg.drawText(pdfText("Seite " + (i + 1) + " von " + seiten.length + " · Ergänzung zur Selbstauskunft · erstellt " + heute.toLocaleDateString("de-DE")), {x: M, y: 28, size: 7.5, font: font, color: MUTED});
+  });
   return await doc.save();
 }
 
@@ -824,6 +955,8 @@ async function absenden(){
     fd.append("name", [wert("p1_vorname"), wert("p1_nachname")].join(" ").trim());
     fd.append("zusammenfassung", zusammenfassung());
     fd.append("pdf", blob, "selbstauskunft.pdf");
+    try { fd.append("pdf2", new Blob([await ergaenzungErstellen(istErneut)], {type: "application/pdf"}), "ergaenzung.pdf"); }
+    catch (e2) { console.warn("Ergaenzungsblatt", e2); } // Hauptdokument geht trotzdem raus
     var j = await fetch(API, {method: "POST", body: fd}).then(function(r){ return r.json(); });
     if (!j.ok) throw new Error(j.error || "senden");
     gesendet = true;
@@ -871,6 +1004,7 @@ fetch(API + "?t=" + TOKEN, {cache: "no-store"}).then(function(r){ return r.json(
   if (leer) {
     var teile = String(prefill.name || "").trim().split(/\s+/);
     d = {p1_vorname: teile.length > 1 ? teile.slice(0, -1).join(" ") : (teile[0] || ""), p1_nachname: teile.length > 1 ? teile[teile.length - 1] : "", p1_email: prefill.email || "", p1_telefon: prefill.phone || "", p1_staat: "deutsch", p2_staat: "deutsch", personen: "1", p2_gleich: true};
+    if (/Finanzierung pruefen/i.test(prefill.thema || "")) d.vh_objekt = "Ich habe bereits eine Immobilie und möchte nur die Finanzierung prüfen";
   }
   form.classList.remove("hidden");
   // Zweimal anwenden: erst Anzahl-Felder, dann die dadurch entstandenen Listenfelder
@@ -878,6 +1012,7 @@ fetch(API + "?t=" + TOKEN, {cache: "no-store"}).then(function(r){ return r.json(
   Object.keys(LISTEN).forEach(renderListe);
   anwenden(d);
   aktualisieren();
+  istErneut = !!j.submitted;
   if (j.status === "uebermittelt" || j.submitted) {
     var b = $("bannerErneut");
     b.innerHTML = "<b>Ihre Selbstauskunft ist bereits bei mir angekommen" + (j.submitted ? " (am " + j.submitted + ")" : "") + ".</b> Aus Datenschutzgründen speichere ich die Angaben danach nicht mehr auf der Website. Wenn sich etwas geändert hat, können Sie hier eine aktualisierte Fassung ausfüllen und erneut senden.";
