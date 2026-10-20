@@ -24,3 +24,8 @@ Guide neu.pdf
 
 # HubSpot-Zugangsschluessel (Private App) - nur auf dem Server, nie ins Repo
 hubspot-config.php
+
+# Selbstauskunft-Entwuerfe und Server-Protokolle: nie ins Repo, und Hostinger
+# laesst per .gitignore ausgeschlossene Pfade beim Deploy stehen
+_leads/sa/
+_leads/*.log

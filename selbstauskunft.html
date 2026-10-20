@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<!-- Der persoenliche Link enthaelt einen Zugangscode: nie an Dritte (Schriften, Bibliotheken) weitergeben -->
+<meta name="referrer" content="no-referrer">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<title>Digitale Selbstauskunft – Robin Jänicke</title>
+<link rel="preconnect" href="https://fonts.bunny.net">
+<link href="https://fonts.bunny.net/css?family=open-sans:400,600,700,800|noto-serif:400,600,700" rel="stylesheet">
+<!-- pdf-lib 1.17.1 (MIT), lokal gehostet: keine Drittanbieter-Anfrage mit dem persoenlichen Link -->
+<script src="/assets/vendor/pdf-lib-1.17.1.min.js" defer></script>
+<style>
+  :root{
+    --navy:#122844; --navy-deep:#0D1B2E; --navy-soft:#1B3A61; --true-blue:#2C517F;
+    --jade:#B4D6D4; --jade-bright:#9FE8E2; --accent:#7FB6C4;
+    --cream:#F0F7F7; --paper:#F6FAFA; --white:#fff; --text:#22354C; --muted:#5E718A; --line:#E1EAEA;
+    --serif:"Noto Serif",Georgia,serif; --sans:"Open Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --shadow-md:0 10px 30px rgba(8,28,51,.10);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--sans);color:var(--text);background:var(--paper);line-height:1.6;font-size:16px}
+  h1,h2,h3,h4{font-family:var(--serif);color:var(--navy);line-height:1.22;letter-spacing:-.01em}
+  a{color:var(--true-blue)}
+
+  header{background:var(--white);border-bottom:1px solid var(--line)}
+  .header-inner{max-width:920px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:13px}
+  .brand-logo{height:34px;width:auto;display:block}
+  .brand-name{font-family:var(--serif);font-size:17px;color:var(--navy);font-weight:700;line-height:1.15}
+  .brand-sub{font-size:11px;color:var(--muted);letter-spacing:1.2px;text-transform:uppercase;font-weight:600}
+  .save-pill{margin-left:auto;font-size:12px;color:var(--muted);background:var(--cream);border:1px solid var(--line);border-radius:999px;padding:4px 11px;white-space:nowrap}
+  .save-pill.ok{color:#1F7A6B;border-color:#CFE6E0;background:#E9F5F2}
+  .save-pill.err{color:#B0413B;border-color:#F0D9D7;background:#FBEFEE}
+
+  .hero-strip{background:linear-gradient(160deg,#0D1B2E 0%,#1B3A61 100%);color:#fff;padding:34px 20px 70px;text-align:center}
+  .hero-strip h1{color:#fff;font-size:28px}
+  .hero-strip p{color:#E6EEF6;font-size:15px;max-width:640px;margin:8px auto 0}
+
+  .wrap{max-width:920px;margin:-44px auto 60px;padding:0 16px}
+  .card{background:#fff;border-radius:16px;box-shadow:var(--shadow-md);border-top:4px solid var(--accent);padding:32px}
+  .banner{background:var(--cream);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:13px 16px;font-size:14px;margin-bottom:22px}
+
+  .stepper{display:flex;gap:6px;margin-bottom:28px}
+  .stp{flex:1;text-align:center;cursor:pointer;background:none;border:0;font:inherit;padding:0}
+  .stp .dot{width:32px;height:32px;border-radius:50%;background:#E8EEF0;color:var(--muted);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;margin:0 auto 6px}
+  .stp.active .dot{background:var(--navy);color:var(--jade-bright)}
+  .stp.done .dot{background:var(--accent);color:#fff}
+  .stp .lbl{font-size:12px;color:var(--muted);font-weight:600;line-height:1.3;display:block}
+  .stp.active .lbl{color:var(--navy)}
+
+  h2{font-size:22px;margin-bottom:4px}
+  .sec-sub{font-size:14px;color:var(--muted);margin-bottom:18px}
+  h3.group{font-size:17px;margin:26px 0 12px;padding-top:18px;border-top:1px solid var(--line)}
+  .first{border-top:none!important;padding-top:0!important;margin-top:6px!important}
+  .hint{font-size:13px;color:var(--muted);margin:-4px 0 12px}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px 18px}
+  .grid2>*,.grid3>*{min-width:0}
+  .span2{grid-column:span 2}
+  label,.lbl-t{display:block;font-size:13px;font-weight:600;color:var(--navy);margin-bottom:5px}
+  .opt{font-weight:400;color:var(--muted)}
+  input[type=text],input[type=tel],input[type=email],input[type=date],input[type=number],select,textarea{
+    width:100%;padding:11px 13px;border:1.5px solid #D5DEE0;border-radius:9px;font-size:16px;font-family:var(--sans);background:#fff;color:var(--text)}
+  textarea{min-height:80px;resize:vertical}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(127,182,196,.2)}
+
+  .toggle-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  .chip{border:1.5px solid #D5DEE0;background:#fff;border-radius:22px;padding:8px 18px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;font-family:var(--sans)}
+  .chip.on{background:var(--navy);border-color:var(--navy);color:var(--jade-bright)}
+  .radio-row{display:flex;gap:16px;flex-wrap:wrap;align-items:center;padding:6px 0 2px}
+  .radio-row label{display:inline-flex;align-items:center;gap:7px;font-weight:500;color:var(--text);margin:0;font-size:14.5px;cursor:pointer}
+  .radio-row input,.check input{accent-color:var(--true-blue);width:17px;height:17px;cursor:pointer;flex:none}
+  .check{display:flex;gap:9px;align-items:flex-start;font-size:14px;font-weight:500;color:var(--text);cursor:pointer}
+
+  .block{border:1.5px solid var(--line);border-radius:12px;padding:16px;margin-top:12px;background:var(--cream)}
+  .block h4{font-size:15px;margin-bottom:10px}
+  .list-head{display:grid;grid-template-columns:1fr 160px;gap:14px;align-items:end}
+
+  /* Zeilen mit Antragsteller | Mitantragsteller */
+  .prow{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,1fr);gap:8px 14px;align-items:end;padding:8px 0;border-bottom:1px dashed var(--line)}
+  .prow .plabel{font-size:13.5px;font-weight:600;color:var(--navy);align-self:center}
+  .prow .plabel small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+  .prow .pcell .who{display:none;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+  .phead{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,1fr);gap:14px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding-bottom:4px}
+  .einzeln .prow,.einzeln .phead{grid-template-columns:minmax(0,1.15fr) minmax(0,2fr)}
+  .sumline{display:flex;justify-content:space-between;gap:12px;background:var(--cream);border-radius:9px;padding:10px 14px;margin-top:10px;font-size:14px;font-weight:700;color:var(--navy)}
+  .eur{position:relative}
+  .eur input{padding-right:34px}
+  .eur::after{content:"€";position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
+
+  .cond-off{display:none!important}
+  .hidden{display:none!important}
+
+  .infobox{font-size:13px;color:var(--muted);background:var(--cream);border-radius:10px;padding:14px 16px;margin-top:10px}
+  .infobox b{color:var(--navy)}
+  .nav-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:28px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;text-decoration:none;font-family:var(--sans);font-weight:700;font-size:15px;border-radius:9px;padding:14px 24px;transition:transform .15s}
+  .btn-main{background:linear-gradient(100deg,#B4D6D4 0%,#9FE8E2 55%,#8CC7CF 100%);color:#0D1B2E;box-shadow:0 6px 16px rgba(159,232,226,.32)}
+  .btn-main:hover{transform:translateY(-2px)}
+  .btn-main[disabled]{opacity:.6;cursor:wait;transform:none}
+  .btn-plain{background:#EDF2F3;color:var(--navy)}
+  .btn-link{background:none;color:var(--true-blue);text-decoration:underline;padding:8px 4px;font-weight:600;font-size:14px}
+  .err{color:#B0413B;font-size:13.5px;font-weight:600;margin-top:12px}
+  .note{font-size:12.5px;color:var(--muted);margin-top:12px}
+
+  .success-panel{text-align:center;padding:16px 4px}
+  .success-panel .big{font-size:44px;margin-bottom:8px}
+  .success-panel p{color:var(--muted);font-size:15px;max-width:580px;margin:0 auto 10px}
+  .success-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+
+  footer{text-align:center;font-size:12.5px;color:var(--muted);padding:0 20px 40px}
+
+  @media(max-width:680px){
+    .grid2,.grid3{grid-template-columns:1fr}
+    .span2{grid-column:span 1}
+    .card{padding:22px 16px}
+    .stp .lbl{font-size:10.5px}
+    .hero-strip h1{font-size:24px}
+    .prow{grid-template-columns:1fr 1fr}
+    .prow .plabel{grid-column:1/-1}
+    .einzeln .prow{grid-template-columns:1fr}
+    .prow .pcell .who{display:block}
+    .einzeln .prow .pcell .who{display:none}
+    .phead{display:none}
+    .list-head{grid-template-columns:1fr}
+    .save-pill{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <img class="brand-logo" src="/bonnfinanz-logo.png" alt="Bonnfinanz" onerror="this.style.display='none'">
+    <div>
+      <div class="brand-name">Robin Jänicke</div>
+      <div class="brand-sub">Digitale Selbstauskunft</div>
+    </div>
+    <span class="save-pill" id="savePill">Wird geladen …</span>
+  </div>
+</header>
+
+<div class="hero-strip">
+  <h1>Ihre digitale Selbstauskunft</h1>
+  <p>Dauert ca. 10 Minuten. Füllen Sie aus, was Sie wissen – Felder, die Sie nicht betreffen, werden gar nicht erst angezeigt. Ihre Eingaben werden automatisch zwischengespeichert: Sie können jederzeit unterbrechen und später über den Link aus Ihrer E-Mail weitermachen.</p>
+</div>
+
+<div class="wrap">
+  <div class="card">
+    <div id="ladeFehler" class="hidden">
+      <h2>Dieser Link ist leider nicht gültig</h2>
+      <p class="sec-sub" style="margin-top:8px">Bitte verwenden Sie den persönlichen Link aus Ihrer E-Mail. Falls es trotzdem nicht klappt, melden Sie sich gern direkt: <a href="tel:+4916092085192">0160 92085192</a> oder <a href="mailto:robin.jaenicke@bonnfinanz.de">robin.jaenicke@bonnfinanz.de</a>.</p>
+    </div>
+
+    <form id="sa" class="hidden" autocomplete="on" onsubmit="return false">
+      <div class="banner hidden" id="bannerErneut"></div>
+
+      <div class="stepper" id="stepper">
+        <button type="button" class="stp active" data-go="1"><span class="dot">1</span><span class="lbl">Persönliches</span></button>
+        <button type="button" class="stp" data-go="2"><span class="dot">2</span><span class="lbl">Einkünfte &amp; Ausgaben</span></button>
+        <button type="button" class="stp" data-go="3"><span class="dot">3</span><span class="lbl">Vermögen &amp; Kredite</span></button>
+        <button type="button" class="stp" data-go="4"><span class="dot">4</span><span class="lbl">Vorhaben &amp; Abschluss</span></button>
+      </div>
+
+      <!-- ================= SCHRITT 1 ================= -->
+      <section class="step" data-step="1">
+        <h2>Angaben zur Person</h2>
+        <div class="sec-sub">Grundlage für die Haushaltsrechnung – so kann ich Ihre Möglichkeiten realistisch einschätzen.</div>
+
+        <h3 class="group first">Wer soll die Immobilie kaufen bzw. finanzieren?</h3>
+        <input type="hidden" name="personen" value="1">
+        <div class="toggle-row">
+          <button type="button" class="chip on" data-personen="1">Ich allein</button>
+          <button type="button" class="chip" data-personen="2">Zusammen mit Partner/in</button>
+        </div>
+
+        <div id="personen"></div>
+
+        <div data-if="p1_familienstand:in:verheiratet|Lebenspartnerschaft">
+          <h3 class="group">Güterstand</h3>
+          <div class="grid2"><div class="field">
+            <label for="gueterstand">Güterstand <span class="opt">(im Zweifel: gesetzlich)</span></label>
+            <select name="gueterstand" id="gueterstand"><option value=""></option><option>gesetzlich (Zugewinngemeinschaft)</option><option>Gütertrennung</option><option>Gütergemeinschaft</option></select>
+          </div></div>
+        </div>
+
+        <h3 class="group">Unterhaltsberechtigte Kinder</h3>
+        <div class="list-head">
+          <div class="hint" style="margin:0">Kinder, für die Sie unterhaltspflichtig sind bzw. die in Ihrem Haushalt leben.</div>
+          <div class="field"><label for="kinder_anzahl">Anzahl</label>
+            <select name="kinder_anzahl" id="kinder_anzahl" data-list="kinder"><option value="0">keine</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
+        </div>
+        <div id="list-kinder"></div>
+
+        <div class="field" style="margin-top:16px"><label for="s1_erg">Ergänzungen <span class="opt">(optional, z. B. Besonderheiten zur Beschäftigung)</span></label><textarea name="s1_erg" id="s1_erg"></textarea></div>
+      </section>
+
+      <!-- ================= SCHRITT 2 ================= -->
+      <section class="step hidden" data-step="2">
+        <h2>Monatliche Einkünfte &amp; Ausgaben</h2>
+        <div class="sec-sub">Bitte jeweils <b>netto pro Monat</b>. Zeilen, die Sie nicht betreffen, einfach leer lassen.</div>
+
+        <h3 class="group first">Einkünfte</h3>
+        <div class="phead"><span></span><span class="n1">Antragsteller/in</span><span class="n2" data-if="personen:in:2">Partner/in</span></div>
+        <div id="einkuenfte"></div>
+        <div class="sumline"><span>Summe Einkünfte</span><span id="sumE">0 €</span></div>
+
+        <div id="rentenBlock">
+          <h3 class="group">Einnahmen im Rentenalter <span class="opt" style="font-family:var(--sans);font-size:13px">(soweit bekannt, z. B. aus der Renteninformation)</span></h3>
+          <div id="rente"></div>
+        </div>
+        <div class="field" style="margin-top:14px"><label for="s2_erg">Ergänzungen zu den Einkünften <span class="opt">(z. B. erwartete Gehaltsänderungen, Bonus)</span></label><textarea name="s2_erg" id="s2_erg"></textarea></div>
+
+        <h3 class="group">Ausgaben</h3>
+        <div class="phead"><span></span><span class="n1">Antragsteller/in</span><span class="n2" data-if="personen:in:2">Partner/in</span></div>
+        <div id="ausgaben"></div>
+        <div class="sumline"><span>Summe Ausgaben</span><span id="sumA">0 €</span></div>
+
+        <div class="grid2" style="margin-top:16px">
+          <div class="field" data-if="miete_1:filled"><span class="lbl-t">Entfällt diese Miete später, z. B. weil Sie ins Eigentum ziehen?</span>
+            <div class="radio-row"><label><input type="radio" name="miete_entfaellt" value="ja"> Ja</label><label><input type="radio" name="miete_entfaellt" value="nein"> Nein</label></div></div>
+          <div class="field"><label for="pkw">Anzahl privater Pkw im Haushalt</label><input type="number" name="pkw" id="pkw" min="0" max="9" inputmode="numeric"></div>
+          <div class="field"><label class="check"><input type="checkbox" name="dienstwagen"> davon Dienstwagen vorhanden</label></div>
+          <div class="field" data-if="dienstwagen:is"><label for="dienstwagen_n">Anzahl Dienstwagen</label><input type="number" name="dienstwagen_n" id="dienstwagen_n" min="0" max="9" inputmode="numeric"></div>
+        </div>
+        <div class="field" style="margin-top:14px"><label for="s3_erg">Ergänzungen zu den Ausgaben <span class="opt">(optional)</span></label><textarea name="s3_erg" id="s3_erg"></textarea></div>
+      </section>
+
+      <!-- ================= SCHRITT 3 ================= -->
+      <section class="step hidden" data-step="3">
+        <h2>Vermögen, Immobilien &amp; Kredite</h2>
+        <div class="sec-sub">Wählen Sie jeweils die Anzahl – die passenden Felder öffnen sich dann.</div>
+
+        <h3 class="group first">Bankguthaben, Wertpapiere, Fonds</h3>
+        <div class="list-head"><div class="hint" style="margin:0">Girokonto, Tagesgeld, Festgeld, Depot …</div>
+          <div class="field"><label for="bank_anzahl">Anzahl</label><select name="bank_anzahl" id="bank_anzahl" data-list="bank"><option value="0">keine</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div></div>
+        <div id="list-bank"></div>
+
+        <h3 class="group">Bausparverträge</h3>
+        <div class="list-head"><div class="hint" style="margin:0">Auch noch nicht zuteilungsreife Verträge.</div>
+          <div class="field"><label for="bs_anzahl">Anzahl</label><select name="bs_anzahl" id="bs_anzahl" data-list="bs"><option value="0">keine</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div></div>
+        <div id="list-bs"></div>
+
+        <h3 class="group">Sonstiges Vermögen</h3>
+        <div class="list-head"><div class="hint" style="margin:0">Z. B. Beteiligungen, Edelmetalle, Kryptowerte.</div>
+          <div class="field"><label for="vm_anzahl">Anzahl</label><select name="vm_anzahl" id="vm_anzahl" data-list="vm"><option value="0">keine</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div></div>
+        <div id="list-vm"></div>
+        <div class="field" style="margin-top:14px"><label for="s4_erg">Ergänzungen zum Vermögen <span class="opt">(z. B. erwartete Erbschaften, Schenkungen)</span></label><textarea name="s4_erg" id="s4_erg"></textarea></div>
+
+        <h3 class="group">Immobilien im Besitz</h3>
+        <div class="list-head"><div class="hint" style="margin:0">Selbst genutzt oder vermietet. Zugehörige Darlehen bitte unten bei den Krediten angeben.</div>
+          <div class="field"><label for="im_anzahl">Anzahl</label><select name="im_anzahl" id="im_anzahl" data-list="im"><option value="0">keine</option><option>1</option><option>2</option><option>3</option></select></div></div>
+        <div id="list-im"></div>
+        <div class="field" style="margin-top:14px" data-if="im_anzahl:gt:0"><label for="s5_erg">Ergänzungen zu den Immobilien <span class="opt">(z. B. weitere Immobilien, geplante Verkäufe)</span></label><textarea name="s5_erg" id="s5_erg"></textarea></div>
+
+        <h3 class="group">Versicherungen mit Kapitalwert</h3>
+        <div class="list-head"><div class="hint" style="margin:0">Renten-, Lebens- oder Berufsunfähigkeitsversicherungen.</div>
+          <div class="field"><label for="vs_anzahl">Anzahl</label><select name="vs_anzahl" id="vs_anzahl" data-list="vs"><option value="0">keine</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div></div>
+        <div id="list-vs"></div>
+
+        <h3 class="group">Kredite &amp; Darlehen</h3>
+        <div class="list-head"><div class="hint" style="margin:0">Immobiliendarlehen, Ratenkredite, Autofinanzierungen, Leasing …</div>
+          <div class="field"><label for="kr_anzahl">Anzahl</label><select name="kr_anzahl" id="kr_anzahl" data-list="kr"><option value="0">keine</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div></div>
+        <div id="list-kr"></div>
+        <div class="field" style="margin-top:14px" data-if="kr_anzahl:gt:0"><label for="s7_erg">Ergänzungen zu den Krediten <span class="opt">(z. B. weitere Kredite, Sondertilgungen)</span></label><textarea name="s7_erg" id="s7_erg"></textarea></div>
+
+        <h3 class="group">Sonstige Verbindlichkeiten</h3>
+        <div class="field"><span class="lbl-t">Bestehen Bürgschaften oder Verpflichtungen gegenüber Dritten?</span>
+          <div class="radio-row"><label><input type="radio" name="buerg" value="nein"> Nein</label><label><input type="radio" name="buerg" value="ja"> Ja</label></div></div>
+        <div class="field" data-if="buerg:in:ja"><label for="buerg_txt">Welche?</label><input type="text" name="buerg_txt" id="buerg_txt"></div>
+      </section>
+
+      <!-- ================= SCHRITT 4 ================= -->
+      <section class="step hidden" data-step="4">
+        <h2>Ihr Vorhaben &amp; Abschluss</h2>
+        <div class="sec-sub">Konzept statt Kondition: Sagen Sie mir, wie Ihre Kapitalanlage aussehen soll – den Rest klären wir im Gespräch.</div>
+
+        <h3 class="group first">Ihr Vorhaben</h3>
+        <div class="grid2">
+          <div class="field span2"><label for="vh_objekt">Worum geht es?</label>
+            <select name="vh_objekt" id="vh_objekt"><option value=""></option>
+              <option>Eine komplett gemanagte Immobilie aus dem Angebot</option>
+              <option>Eine eigene Immobilie – ich habe schon ein Objekt im Blick</option>
+              <option>Eine eigene Immobilie – ich suche noch</option>
+              <option>Noch offen – ich möchte erst meine Möglichkeiten kennen</option></select></div>
+          <div class="field span2" data-if="vh_objekt:in:Eine eigene Immobilie – ich habe schon ein Objekt im Blick"><label for="vh_details">Welches Objekt? <span class="opt">(Adresse, Link oder Beschreibung)</span></label><input type="text" name="vh_details" id="vh_details"></div>
+          <div class="field"><label for="vh_preis">Kaufpreis bzw. Budget <span class="opt">(ca.)</span></label><div class="eur"><input type="text" inputmode="decimal" name="vh_preis" id="vh_preis"></div></div>
+          <div class="field"><label for="vh_ek">Eigenkapital, das Sie einsetzen möchten</label><div class="eur"><input type="text" inputmode="decimal" name="vh_ek" id="vh_ek"></div></div>
+          <div class="field"><label for="vh_aufwand">Max. monatlicher Eigenaufwand <span class="opt">(nach Steuern)</span></label><div class="eur"><input type="text" inputmode="decimal" name="vh_aufwand" id="vh_aufwand"></div></div>
+          <div class="field"><label for="vh_zb">Zinsbindung</label>
+            <select name="vh_zb" id="vh_zb"><option value=""></option><option>10 Jahre</option><option>15 Jahre</option><option>20 Jahre</option><option>25 Jahre oder länger</option><option>Flexibel – gern beraten</option></select></div>
+          <div class="field"><label for="vh_tilgung">Anfängliche Tilgung</label>
+            <select name="vh_tilgung" id="vh_tilgung"><option value=""></option><option>so niedrig wie sinnvoll</option><option>1 %</option><option>2 %</option><option>3 % oder mehr</option><option>gern beraten</option></select></div>
+          <div class="field"><label for="vh_sonder">Sondertilgungen</label>
+            <select name="vh_sonder" id="vh_sonder"><option value=""></option><option>wichtig – plane ich regelmäßig</option><option>als Option schön</option><option>nicht wichtig</option></select></div>
+          <div class="field"><label for="vh_zeit">Zeitplan</label>
+            <select name="vh_zeit" id="vh_zeit"><option value=""></option><option>so bald wie möglich</option><option>in den nächsten 3 Monaten</option><option>in 3–12 Monaten</option><option>noch offen</option></select></div>
+          <div class="field"><label for="vh_banken">Gibt es schon Anfragen bei Banken?</label>
+            <select name="vh_banken" id="vh_banken"><option value=""></option><option>nein</option><option>ja, bei der Hausbank</option><option>ja, bei anderen Banken/Vermittlern</option></select></div>
+          <div class="field span2"><label for="vh_wuensche">Was ist Ihnen sonst noch wichtig? <span class="opt">(Fragen, Wünsche, Besonderheiten)</span></label><textarea name="vh_wuensche" id="vh_wuensche"></textarea></div>
+        </div>
+
+        <h3 class="group">Erklärung</h3>
+        <div class="hint">Bestehen oder bestanden in den letzten zehn Jahren Mahnverfahren, Zahlungsklagen, Zwangsvollstreckungen, Verfahren zur Abgabe der eidesstattlichen Versicherung oder Insolvenzverfahren?</div>
+        <div id="erklaerung"></div>
+
+        <h3 class="group">Bankverbindung <span class="opt" style="font-family:var(--sans);font-size:13px">(optional)</span></h3>
+        <div class="grid2">
+          <div class="field"><label for="bank_name">Name der Bank</label><input type="text" name="bank_name" id="bank_name"></div>
+          <div class="field"><label for="iban">IBAN</label><input type="text" name="iban" id="iban" autocomplete="off" placeholder="DE.."></div>
+        </div>
+
+        <h3 class="group">Einwilligung zur Weitergabe an Produktpartner</h3>
+        <div class="hint">Damit Bonnfinanz Ihre Angaben und Unterlagen an ausgewählte Produktpartner (insbesondere Kreditinstitute, Bausparkassen, Versicherer) weitergeben darf, soweit das zur Prüfung und Vermittlung der gewünschten Finanzierung nötig ist. Freiwillig und jederzeit für die Zukunft widerrufbar.</div>
+        <div id="weitergabe"></div>
+
+        <div class="grid2" style="margin-top:14px">
+          <div class="field"><label for="ort">Ort <span class="opt">(für „Ort, Datum“)</span></label><input type="text" name="ort" id="ort"></div>
+        </div>
+
+        <div class="infobox">
+          <b>Gut zu wissen:</b> Diese Selbstauskunft ist weder ein Darlehensantrag noch eine Finanzierungszusage – darüber entscheidet ausschließlich der jeweilige Darlehensgeber. Fehlende Unterlagen (z. B. Gehaltsnachweise) reichen Sie später nach. Wesentliche Änderungen, etwa bei Einkommen oder Verbindlichkeiten, teilen Sie bitte bis zur Auszahlung mit.
+        </div>
+        <label class="check" style="margin-top:16px"><input type="checkbox" name="zustimmung" id="zustimmung">
+          <span>Ich bestätige, dass meine Angaben richtig und vollständig sind, und bin einverstanden, dass sie zur Vorbereitung der Beratung durch Robin Jänicke (Bonnfinanz) verarbeitet und per E-Mail an ihn übermittelt werden. Die <a href="/datenschutz.html" target="_blank" rel="noopener">Datenschutzhinweise</a> und die <a href="/vermittlerprofil.pdf" target="_blank" rel="noopener">Erstinformation</a> habe ich erhalten.</span></label>
+
+        <div class="err hidden" id="sendeFehler"></div>
+      </section>
+
+      <div class="nav-row" id="navRow">
+        <button type="button" class="btn btn-plain" id="zurueck">← Zurück</button>
+        <button type="button" class="btn-link btn" id="spaeter">Speichern &amp; später weitermachen</button>
+        <button type="button" class="btn btn-main" id="weiter">Weiter →</button>
+      </div>
+      <div class="note hidden" id="spaeterHinweis">Gespeichert. Sie können diese Seite jetzt schließen und jederzeit über den Link aus Ihrer E-Mail weitermachen.</div>
+    </form>
+
+    <!-- ================= FERTIG ================= -->
+    <div id="fertig" class="hidden">
+      <div class="success-panel">
+        <div class="big">✅</div>
+        <h2>Vielen Dank – Ihre Selbstauskunft ist angekommen!</h2>
+        <p>Ich habe Ihre Angaben als PDF erhalten und bereite unser Gespräch damit konkret vor. Unterlagen wie Gehaltsnachweise brauchen Sie erst später – ich sage Ihnen genau, welche.</p>
+        <div class="success-actions">
+          <a class="btn btn-plain" id="kopieLink" download="Selbstauskunft.pdf" href="#">Kopie für Ihre Unterlagen (PDF)</a>
+        </div>
+        <div id="terminAngebot" style="margin-top:26px">
+          <p><b>Noch keinen Termin?</b> Sichern Sie sich gleich Ihren Wunschtermin für das Erstgespräch (60 Min., per Video).</p>
+          <div class="success-actions"><button type="button" class="btn btn-main" id="terminBtn">Termin jetzt buchen</button></div>
+          <p class="note">Für die Terminbuchung wird <b>Calendly</b> geladen (Datenübertragung in die USA möglich), Details in der <a href="/datenschutz.html" target="_blank" rel="noopener">Datenschutzerklärung</a>.</p>
+        </div>
+        <p id="terminOk" class="hidden" style="margin-top:22px;color:#1F7A6B;font-weight:700">✓ Termin gebucht – die Bestätigung kommt per E-Mail.</p>
+        <p style="margin-top:22px"><a href="/beratung">Zurück zur Website</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Robin Jänicke · Bonnfinanz · Pappelrain 5, 35428 Langgöns · <a href="mailto:robin.jaenicke@bonnfinanz.de">robin.jaenicke@bonnfinanz.de</a> · 0160 92085192<br>
+  Ihre Angaben werden vertraulich behandelt und ausschließlich zur Vorbereitung Ihrer Beratung verwendet.<br>
+  <a href="/impressum.html">Impressum</a> · <a href="/datenschutz.html">Datenschutz</a> · <a href="/vermittlerprofil.pdf" target="_blank" rel="noopener">Erstinformation</a>
+</footer>
+
+<script>
+(function(){
+"use strict";
+var TOKEN = (new URLSearchParams(location.search).get("t") || "").toLowerCase();
+var API = "/sa-api.php";
+var CAL_URL = "https://calendly.com/robinjaenicke/kapitalanlage-erstgespraech";
+var form = document.getElementById("sa");
+var schritt = 1, MAX = 4, prefill = {};
+
+/* ---------- Hilfen ---------- */
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function opts(list){ return '<option value=""></option>' + list.map(function(o){ return "<option>" + esc(o) + "</option>"; }).join(""); }
+function fld(name, label, extra, cls){ // Textfeld
+  extra = extra || {};
+  var type = extra.type || "text", id = "f_" + name;
+  var inp = '<input type="' + type + '" name="' + name + '" id="' + id + '"' + (extra.ph ? ' placeholder="' + esc(extra.ph) + '"' : "") + (extra.im ? ' inputmode="' + extra.im + '"' : "") + (extra.ac ? ' autocomplete="' + extra.ac + '"' : "") + ">";
+  if (extra.eur) inp = '<div class="eur">' + inp.replace('type="text"', 'type="text" inputmode="decimal"') + "</div>";
+  return '<div class="field ' + (cls || "") + '"' + (extra.iff ? ' data-if="' + extra.iff + '"' : "") + '><label for="' + id + '">' + label + "</label>" + inp + "</div>";
+}
+function sel(name, label, list, extra, cls){
+  extra = extra || {};
+  return '<div class="field ' + (cls || "") + '"' + (extra.iff ? ' data-if="' + extra.iff + '"' : "") + '><label for="f_' + name + '">' + label + '</label><select name="' + name + '" id="f_' + name + '">' + opts(list) + "</select></div>";
+}
+function num(s){ s = String(s || "").replace(/[^\d,.-]/g, ""); if (!s) return 0; s = s.replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", "."); var n = parseFloat(s); return isNaN(n) ? 0 : n; }
+function eur(n){ return n ? n.toLocaleString("de-DE", {maximumFractionDigits: 2}) : ""; }
+function datum(iso){ var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""); return m ? m[3] + "." + m[2] + "." + m[1] : (iso || ""); }
+
+/* ---------- Personen ---------- */
+var STAATEN = "deutsch";
+function personHTML(n){
+  var P = "p" + n + "_", only2 = n === 2 ? ' data-if="personen:in:2"' : "";
+  var adr = n === 2 ? "p2_gleich:not" : "";
+  return '<div' + only2 + '>' +
+    '<h3 class="group">' + (n === 1 ? "Antragsteller/in" : "Partner/in (Mitantragsteller/in)") + "</h3>" +
+    '<div class="grid2">' +
+      '<div class="field span2"><span class="lbl-t">Anrede</span><div class="radio-row">' +
+        '<label><input type="radio" name="' + P + 'anrede" value="Frau"> Frau</label>' +
+        '<label><input type="radio" name="' + P + 'anrede" value="Herr"> Herr</label>' +
+        '<label><input type="radio" name="' + P + 'anrede" value="divers"> divers</label></div></div>' +
+      fld(P + "vorname", "Vorname", {ac: n === 1 ? "given-name" : "off"}) +
+      fld(P + "nachname", "Nachname", {ac: n === 1 ? "family-name" : "off"}) +
+      sel(P + "titel", 'Titel <span class="opt">(optional)</span>', ["Dr.", "Prof.", "Prof. Dr."]) +
+      fld(P + "geburtsname", 'Geburtsname <span class="opt">(falls abweichend)</span>') +
+      fld(P + "geburtsdatum", "Geburtsdatum", {type: "date"}) +
+      fld(P + "geburtsort", "Geburtsort") +
+      (n === 2 ? '<div class="field span2"><label class="check"><input type="checkbox" name="p2_gleich" checked> Gleiche Anschrift wie Antragsteller/in</label></div>' : "") +
+      fld(P + "strasse", "Straße, Hausnummer", {iff: adr, ac: n === 1 ? "street-address" : "off"}, "span2") +
+      fld(P + "plzort", "PLZ / Ort", {iff: adr}) +
+      fld(P + "wohnhaft", "Wohnhaft dort seit", {ph: "MM/JJJJ", iff: adr}) +
+      sel(P + "familienstand", "Familienstand", ["ledig", "verheiratet", "Lebenspartnerschaft", "geschieden", "getrennt lebend", "verwitwet"]) +
+      fld(P + "staat", "Staatsangehörigkeit", {ph: "z. B. deutsch"}) +
+      sel(P + "aufenthalt", "Aufenthaltserlaubnis", ["unbefristet", "befristet"], {iff: P + "staat:nde"}) +
+      fld(P + "aufenthalt_bis", "Befristet bis", {type: "date", iff: P + "staat:nde&" + P + "aufenthalt:in:befristet"}) +
+      fld(P + "steuerid", 'Steuer-ID <span class="opt">(11-stellig)</span>', {im: "numeric", ac: "off"}) +
+      fld(P + "telefon", "Telefon", {type: "tel", ac: n === 1 ? "tel" : "off"}) +
+      fld(P + "mobil", 'Telefon mobil <span class="opt">(falls abweichend)</span>', {type: "tel"}) +
+      fld(P + "email", "E-Mail", {type: "email", ac: n === 1 ? "email" : "off"}) +
+      fld(P + "beruf", "Ausgeübter Beruf") +
+      sel(P + "besch", "Beschäftigung", ["angestellt", "verbeamtet", "selbstständig", "in Ausbildung", "Ruhestand"]) +
+      fld(P + "arbeitgeber", "Arbeitgeber", {iff: P + "besch:in:angestellt|verbeamtet|in Ausbildung"}) +
+      fld(P + "firma", 'Firma / Tätigkeit <span class="opt">(Selbstständigkeit)</span>', {iff: P + "besch:in:selbstständig"}) +
+      fld(P + "seit", "Beschäftigt bzw. selbstständig seit", {ph: "MM/JJJJ", iff: P + "besch:in:angestellt|verbeamtet|in Ausbildung|selbstständig"}) +
+      sel(P + "verh", "Arbeitsverhältnis", ["unbefristet", "befristet", "Probezeit läuft noch"], {iff: P + "besch:in:angestellt|in Ausbildung"}) +
+      fld(P + "verh_bis", "Befristet bzw. Probezeit bis", {type: "date", iff: P + "besch:in:angestellt|in Ausbildung&" + P + "verh:in:befristet|Probezeit läuft noch"}) +
+    "</div></div>";
+}
+$("personen").innerHTML = personHTML(1) + personHTML(2);
+document.querySelectorAll("[data-personen]").forEach(function(b){
+  b.addEventListener("click", function(){
+    form.personen.value = b.getAttribute("data-personen");
+    aktualisieren(); speichernBald();
+  });
+});
+
+/* ---------- Zeilen Antragsteller | Partner ---------- */
+function prow(key, label, cond, extra){
+  extra = extra || {};
+  var c1 = (cond || "").replace(/\{n\}/g, "1"), c2 = "personen:in:2" + (cond ? "&" + cond.replace(/\{n\}/g, "2") : "");
+  function zelle(n, c){
+    var inner = extra.select
+      ? '<select name="' + key + "_" + n + '">' + opts(extra.select) + "</select>"
+      : '<div class="eur"><input type="text" inputmode="decimal" name="' + key + "_" + n + '" aria-label="' + esc(label.replace(/<[^>]+>/g, "")) + '"></div>';
+    if (extra.extra) inner += extra.extra(n);
+    return '<div class="pcell"' + (c ? ' data-if="' + c + '"' : "") + '><span class="who n' + n + '">' + (n === 1 ? "Antragsteller/in" : "Partner/in") + "</span>" + inner + "</div>";
+  }
+  return '<div class="prow"' + (extra.rowIf ? ' data-if="' + extra.rowIf + '"' : "") + '><div class="plabel">' + label + (extra.hint ? "<small>" + extra.hint + "</small>" : "") + "</div>" + zelle(1, c1) + zelle(2, c2) + "</div>";
+}
+var NS = "angestellt|verbeamtet|in Ausbildung";
+$("einkuenfte").innerHTML =
+  prow("e_ns", "Gehalt / Bezüge", "p{n}_besch:in:" + NS, {hint: "nichtselbstständige Arbeit", extra: function(n){
+    return '<select name="e_ns_x_' + n + '" style="margin-top:6px"><option value="">Gehälter pro Jahr</option><option value="12">12 Gehälter</option><option value="13">13 oder mehr</option></select>'; }}) +
+  prow("e_s", "Einkünfte aus Selbstständigkeit", "p{n}_besch:in:selbstständig", {hint: "Durchschnitt pro Monat"}) +
+  prow("e_rente", "Rente / Pension", "p{n}_besch:in:Ruhestand") +
+  prow("e_kg", "Kindergeld", "", {rowIf: "kinder_anzahl:gt:0"}) +
+  prow("e_miete", "Nettomieteinnahmen", "", {hint: "aus vermieteten Immobilien"}) +
+  prow("e_so", "Sonstige Einkünfte / Nebenverdienst", "", {extra: function(n){
+    return '<input type="text" name="e_so_aus_' + n + '" placeholder="aus …" style="margin-top:6px">'; }});
+$("rente").innerHTML =
+  prow("r_beginn", "Voraussichtlicher Rentenbeginn", "p{n}_besch:nin:Ruhestand", {select: ["mit 67 Jahren", "in einem anderen Alter"], extra: function(n){
+    return '<input type="number" name="r_alter_' + n + '" placeholder="Alter" min="55" max="75" style="margin-top:6px" data-if="r_beginn_' + n + ':in:in einem anderen Alter">'; }}) +
+  prow("r_hoehe", "Voraussichtliche Rente", "p{n}_besch:nin:Ruhestand", {hint: "laut Renteninformation"}) +
+  prow("r_so", "Sonstige Einnahmen im Rentenalter", "p{n}_besch:nin:Ruhestand", {hint: "z. B. Betriebsrente, Mieten"});
+$("ausgaben").innerHTML =
+  prow("miete", "Kaltmiete", "", {hint: "aktuelle Wohnung"}) +
+  prow("pkv", "Private Krankenversicherung", "") +
+  prow("raten", "Ratenkredite / Darlehen", "", {hint: "Raten, siehe auch Kredite"}) +
+  prow("leasing", "Leasingraten", "") +
+  prow("spar", "Sparraten", "", {hint: "z. B. Sparpläne, Bausparen"}) +
+  prow("versich", "Versicherungsbeiträge", "") +
+  prow("unterhalt", "Sonstige Leistungen", "", {hint: "z. B. Unterhalt"}) +
+  prow("sonstaus", "Sonstige regelmäßige Ausgaben", "");
+$("erklaerung").innerHTML = prow("erkl", "Antwort", "", {select: ["nein", "ja"], extra: function(n){
+  return '<input type="text" name="erkl_txt_' + n + '" placeholder="ja, und zwar …" style="margin-top:6px" data-if="erkl_' + n + ':in:ja">'; }});
+$("weitergabe").innerHTML = prow("einw", "Einwilligung zur Weitergabe", "", {select: ["ja", "nein"]});
+
+/* ---------- Listen (Anzahl -> Bloecke) ---------- */
+var INHABER = ["Antragsteller/in", "Partner/in", "gemeinsam"];
+var LISTEN = {
+  kinder: function(i){ return '<div class="block"><h4>' + i + '. Kind</h4><div class="grid2">' + fld("k" + i + "_vorname", "Vorname") + fld("k" + i + "_geb", "Geburtsdatum", {type: "date"}) + "</div></div>"; },
+  bank: function(i){ return '<div class="block"><h4>Guthaben ' + i + '</h4><div class="grid2">' + sel("b" + i + "_inhaber", "Kontoinhaber", INHABER) + fld("b" + i + "_inst", 'Kreditinstitut <span class="opt">(Art, z. B. Tagesgeld, Depot)</span>') + fld("b" + i + "_saldo", "Aktueller Saldo", {eur: true}) + fld("b" + i + "_faellig", "Verfügbar ab", {ph: "z. B. sofort oder MM/JJJJ"}) + "</div></div>"; },
+  bs: function(i){ return '<div class="block"><h4>Bausparvertrag ' + i + '</h4><div class="grid2">' + sel("s" + i + "_inhaber", "Kontoinhaber", INHABER) + fld("s" + i + "_kasse", "Bausparkasse") + fld("s" + i + "_summe", "Bausparsumme", {eur: true}) + fld("s" + i + "_saldo", "Aktueller Saldo", {eur: true}) + fld("s" + i + "_zut", "Zuteilung (voraussichtlich)", {ph: "MM/JJJJ"}) + "</div></div>"; },
+  vm: function(i){ return '<div class="block"><h4>Vermögenswert ' + i + '</h4><div class="grid3">' + sel("v" + i + "_inhaber", "Inhaber", INHABER) + fld("v" + i + "_art", "Art") + fld("v" + i + "_wert", "Wert", {eur: true}) + "</div></div>"; },
+  im: function(i){ var P = "i" + i + "_"; return '<div class="block"><h4>' + i + '. Immobilie</h4><div class="grid2">' +
+    sel(P + "eig", "Eigentümer", INHABER) + sel(P + "art", "Immobilienart", ["Eigentumswohnung", "Einfamilienhaus", "Doppelhaushälfte / Reihenhaus", "Mehrfamilienhaus", "Grundstück", "Gewerbe", "Sonstiges"]) +
+    fld(P + "adr", "Adresse", {}, "span2") + fld(P + "qm", 'Wohnfläche <span class="opt">(m²)</span>', {im: "decimal"}) + fld(P + "bj", "Baujahr", {im: "numeric"}) +
+    fld(P + "wert", "Geschätzter Verkehrswert", {eur: true}) + sel(P + "nutz", "Nutzung", ["selbst genutzt", "vermietet", "teilweise vermietet"]) +
+    fld(P + "miete", "Monatl. Mieteinnahmen (kalt)", {eur: true, iff: P + "nutz:in:vermietet|teilweise vermietet"}) + fld(P + "rest", "Restschuld (ca.)", {eur: true}) + "</div></div>"; },
+  vs: function(i){ var P = "w" + i + "_"; return '<div class="block"><h4>Versicherung ' + i + '</h4><div class="grid2">' +
+    sel(P + "vn", "Versicherungsnehmer", INHABER) + fld(P + "ges", "Gesellschaft") + sel(P + "art", "Art", ["Rentenversicherung (RV)", "Lebensversicherung (LV)", "Berufsunfähigkeit (BU)", "Sonstige"]) +
+    fld(P + "ablauf", "Garantierte Ablaufleistung", {eur: true}) + fld(P + "per", "Ablaufdatum", {ph: "MM/JJJJ"}) + fld(P + "rk", "Aktueller Rückkaufswert", {eur: true}) + "</div></div>"; },
+  kr: function(i){ var P = "c" + i + "_"; return '<div class="block"><h4>Kredit / Darlehen ' + i + '</h4><div class="grid2">' +
+    sel(P + "nehmer", "Kreditnehmer", INHABER) + fld(P + "geber", "Kreditgeber (Bank)") + sel(P + "zweck", "Verwendungszweck", ["Immobilie", "Auto", "Ratenkredit / Konsum", "Leasing", "Sonstiges"]) +
+    fld(P + "urspr", "Ursprungsdarlehen", {eur: true}) + fld(P + "saldo", "Aktueller Saldo", {eur: true}) + fld(P + "rate", "Monatliche Rate", {eur: true}) +
+    fld(P + "zins", 'Zinssatz <span class="opt">(% p. a.)</span>', {im: "decimal"}) + fld(P + "fest", "Zinssatz fest bis", {ph: "MM/JJJJ"}) + "</div></div>"; }
+};
+function renderListe(key){
+  var sel_ = form.querySelector('[data-list="' + key + '"]'), n = parseInt(sel_.value, 10) || 0;
+  var box = $("list-" + key), st = zustand(), html = "";
+  for (var i = 1; i <= n; i++) html += LISTEN[key](i);
+  box.innerHTML = html;
+  anwenden(st);
+}
+form.querySelectorAll("[data-list]").forEach(function(s){
+  s.addEventListener("change", function(){ renderListe(s.getAttribute("data-list")); aktualisieren(); });
+});
+
+/* ---------- Zustand lesen / setzen ---------- */
+function zustand(){
+  var st = {};
+  form.querySelectorAll("[name]").forEach(function(el){
+    if (el.type === "radio") { if (el.checked) st[el.name] = el.value; }
+    else if (el.type === "checkbox") st[el.name] = el.checked;
+    else st[el.name] = el.value;
+  });
+  return st;
+}
+function anwenden(st){
+  form.querySelectorAll("[name]").forEach(function(el){
+    if (!(el.name in st)) return;
+    if (el.type === "radio") el.checked = (st[el.name] === el.value);
+    else if (el.type === "checkbox") el.checked = !!st[el.name];
+    else el.value = st[el.name];
+  });
+}
+function wert(name){ // nur sichtbar relevante Werte
+  var el = form.querySelector('[name="' + name + '"]' + (form.querySelector('[name="' + name + '"][type=radio]') ? ":checked" : ""));
+  if (!el || el.closest(".cond-off")) return "";
+  if (el.type === "checkbox") return el.checked;
+  return (el.value || "").trim();
+}
+
+/* ---------- Bedingungen (data-if) ---------- */
+function pruefe(ausdruck, st){
+  return ausdruck.split("&").every(function(teil){
+    var p = teil.split(":"), name = p[0], op = p[1] || "filled", werte = (p.slice(2).join(":") || "").split("|"), v = st[name];
+    if (v === undefined) v = "";
+    switch (op) {
+      case "in": return werte.indexOf(String(v)) !== -1;
+      case "nin": return werte.indexOf(String(v)) === -1;
+      case "gt": return (parseFloat(v) || 0) > parseFloat(werte[0]);
+      case "is": return v === true;
+      case "not": return v !== true;
+      case "nde": return String(v).trim() !== "" && !/^deutsch/i.test(String(v).trim());
+      default: return String(v).trim() !== "";
+    }
+  });
+}
+function aktualisieren(){
+  var st = zustand(), zwei = st.personen === "2";
+  document.querySelectorAll("[data-personen]").forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-personen") === st.personen); });
+  // mehrfach, weil Bedingungen aufeinander aufbauen koennen
+  for (var r = 0; r < 2; r++) form.querySelectorAll("[data-if]").forEach(function(el){
+    el.classList.toggle("cond-off", !pruefe(el.getAttribute("data-if"), st));
+  });
+  ["einkuenfte", "rente", "ausgaben", "erklaerung", "weitergabe"].forEach(function(id){ $(id).classList.toggle("einzeln", !zwei); });
+  document.querySelectorAll(".phead").forEach(function(h){ h.classList.toggle("einzeln", !zwei); h.parentElement.classList.toggle("einzeln", !zwei); });
+  // Namen in die Spaltenkoepfe
+  [1, 2].forEach(function(n){
+    var vn = (st["p" + n + "_vorname"] || "").trim();
+    document.querySelectorAll(".n" + n).forEach(function(e){ e.textContent = vn || (n === 1 ? "Antragsteller/in" : "Partner/in"); });
+  });
+  // Rentenblock nur, wenn mind. eine Person nicht im Ruhestand ist
+  var r1 = st.p1_besch === "Ruhestand", r2 = !zwei || st.p2_besch === "Ruhestand";
+  $("rentenBlock").classList.toggle("cond-off", r1 && r2);
+  summen();
+}
+function summen(){
+  var e = 0, a = 0;
+  [1, 2].forEach(function(n){ e += sumE(n); a += sumA(n); });
+  $("sumE").textContent = (eur(e) || "0") + " €";
+  $("sumA").textContent = (eur(a) || "0") + " €";
+}
+function sumE(n){ return ["e_ns", "e_s", "e_rente", "e_kg", "e_miete", "e_so"].reduce(function(s, k){ return s + num(wert(k + "_" + n)); }, 0); }
+function sumA(n){ return ["miete", "pkv", "raten", "leasing", "spar", "versich", "unterhalt", "sonstaus"].reduce(function(s, k){ return s + num(wert(k + "_" + n)); }, 0); }
+
+/* ---------- Schritte ---------- */
+function zeige(n){
+  schritt = Math.max(1, Math.min(MAX, n));
+  document.querySelectorAll(".step").forEach(function(s){ s.classList.toggle("hidden", +s.getAttribute("data-step") !== schritt); });
+  document.querySelectorAll(".stp").forEach(function(b){
+    var k = +b.getAttribute("data-go");
+    b.classList.toggle("active", k === schritt); b.classList.toggle("done", k < schritt);
+  });
+  $("zurueck").style.visibility = schritt === 1 ? "hidden" : "visible";
+  $("weiter").textContent = schritt === MAX ? "Selbstauskunft absenden →" : "Weiter →";
+  $("spaeterHinweis").classList.add("hidden");
+  window.scrollTo({top: 0, behavior: "smooth"});
+}
+document.querySelectorAll(".stp").forEach(function(b){ b.addEventListener("click", function(){ speichern(); zeige(+b.getAttribute("data-go")); }); });
+$("zurueck").addEventListener("click", function(){ speichern(); zeige(schritt - 1); });
+$("weiter").addEventListener("click", function(){ if (schritt < MAX) { speichern(); zeige(schritt + 1); } else absenden(); });
+$("spaeter").addEventListener("click", function(){ speichern(true); });
+
+/* ---------- Zwischenspeichern ---------- */
+var timer = null, laeuft = false, nochmal = false, gesendet = false;
+function pill(text, cls){ var p = $("savePill"); p.textContent = text; p.className = "save-pill " + (cls || ""); }
+function speichernBald(){ clearTimeout(timer); timer = setTimeout(speichern, 1200); pill("Änderungen …"); }
+function speichern(hinweis){
+  clearTimeout(timer);
+  if (gesendet) return;
+  if (laeuft) { nochmal = true; return; }
+  laeuft = true;
+  var fd = new FormData(); fd.append("action", "save"); fd.append("t", TOKEN); fd.append("draft", JSON.stringify(zustand()));
+  fetch(API, {method: "POST", body: fd}).then(function(r){ return r.json(); }).then(function(j){
+    if (!j.ok) throw 0;
+    var d = new Date(); pill("Gespeichert " + d.toLocaleTimeString("de-DE", {hour: "2-digit", minute: "2-digit"}), "ok");
+    if (hinweis === true) $("spaeterHinweis").classList.remove("hidden");
+  }).catch(function(){ pill("Nicht gespeichert – bitte Verbindung prüfen", "err"); })
+  .then(function(){ laeuft = false; if (nochmal) { nochmal = false; speichern(); } });
+}
+form.addEventListener("input", function(e){ if (e.target.name) { aktualisieren(); speichernBald(); } });
+form.addEventListener("change", function(e){ if (e.target.name) { aktualisieren(); speichernBald(); } });
+window.addEventListener("pagehide", function(){
+  if (!TOKEN || !$("fertig").classList.contains("hidden")) return;
+  try { var fd = new FormData(); fd.append("action", "save"); fd.append("t", TOKEN); fd.append("draft", JSON.stringify(zustand())); navigator.sendBeacon(API, fd); } catch (_) {}
+});
+
+/* ---------- PDF befuellen ---------- */
+function inhaberName(v){
+  if (v === "Antragsteller/in") return [wert("p1_vorname"), wert("p1_nachname")].filter(Boolean).join(" ") || v;
+  if (v === "Partner/in") return [wert("p2_vorname"), wert("p2_nachname")].filter(Boolean).join(" ") || v;
+  return v;
+}
+function vollerName(n){
+  var nn = wert("p" + n + "_nachname"), vn = wert("p" + n + "_vorname"), t = wert("p" + n + "_titel");
+  return (t ? t + " " : "") + [nn, vn].filter(Boolean).join(", ");
+}
+function vorhabenText(){
+  var z = [];
+  function add(l, v){ if (v) z.push(l + ": " + v); }
+  add("Vorhaben", wert("vh_objekt")); add("Objekt", wert("vh_details"));
+  add("Kaufpreis/Budget ca.", wert("vh_preis") && eur(num(wert("vh_preis"))) + " EUR");
+  add("Einzusetzendes Eigenkapital", wert("vh_ek") && eur(num(wert("vh_ek"))) + " EUR");
+  add("Max. mtl. Eigenaufwand", wert("vh_aufwand") && eur(num(wert("vh_aufwand"))) + " EUR");
+  add("Zinsbindung", wert("vh_zb")); add("Tilgung", wert("vh_tilgung")); add("Sondertilgungen", wert("vh_sonder"));
+  add("Zeitplan", wert("vh_zeit")); add("Anfragen bei Banken", wert("vh_banken")); add("Wuensche", wert("vh_wuensche"));
+  return z.join("\n");
+}
+function kinderText(){
+  var n = parseInt(wert("kinder_anzahl"), 10) || 0, z = [];
+  for (var i = 5; i <= n; i++) if (wert("k" + i + "_vorname") || wert("k" + i + "_geb")) z.push(i + ". Kind: " + wert("k" + i + "_vorname") + (wert("k" + i + "_geb") ? ", geb. " + datum(wert("k" + i + "_geb")) : ""));
+  return z.join("\n");
+}
+async function pdfErstellen(){
+  var bytes = await fetch("/selbstauskunft-vorlage.pdf").then(function(r){ if (!r.ok) throw new Error("vorlage"); return r.arrayBuffer(); });
+  var doc = await PDFLib.PDFDocument.load(bytes);
+  var f = doc.getForm();
+  function T(name, v, gross){ if (v === undefined || v === null || v === "" || v === false) return; try { var x = f.getTextField(name); x.setText(String(v)); if (gross) x.setFontSize(8); } catch (e) { console.warn("Feld", name, e); } }
+  function C(name, an){ if (!an) return; try { f.getCheckBox(name).check(); } catch (e) { console.warn("Feld", name, e); } }
+  function E(name, v){ var n = num(v); if (n) T(name, eur(n)); }
+  var zwei = wert("personen") === "2";
+  var heute = new Date().toLocaleDateString("de-DE");
+  var personen = zwei ? [1, 2] : [1];
+
+  personen.forEach(function(n){
+    var P = "p" + n + "_", Q = "p" + (n === 2 && wert("p2_gleich") === true ? 1 : n) + "_";
+    var an = wert(P + "anrede"); C("p_Anrede_" + n + "_" + an, !!an);
+    T("p_Name__Vorname_" + n, vollerName(n));
+    T("p_Geburtsname_" + n, wert(P + "geburtsname"));
+    T("p_Geburtsdatum_" + n, datum(wert(P + "geburtsdatum")));
+    T("p_Geburtsort_" + n, wert(P + "geburtsort"));
+    T("p_Straße__Hausnummer_" + n, wert(Q + "strasse"));
+    T("p_PLZ___Ort_" + n, wert(Q + "plzort"));
+    T("p_Wohnhaft_seit_" + n, wert(Q + "wohnhaft"));
+    var fs = {"ledig": "ledig", "verheiratet": "verheiratet", "Lebenspartnerschaft": "Lebenspartnerschaft", "geschieden": "geschieden", "getrennt lebend": "getrennt_lebend", "verwitwet": "verwitwet"}[wert(P + "familienstand")];
+    C("p_Familienstand_" + n + "_" + fs, !!fs);
+    T("p_Beruf_" + n, wert(P + "beruf"));
+    var bs = {"angestellt": "angestellt", "verbeamtet": "verbeamtet", "selbstständig": "selbstständig", "in Ausbildung": "in_Ausbildung", "Ruhestand": "Ruhestand"}[wert(P + "besch")];
+    C("p_Beschäftigung_" + n + "_" + bs, !!bs);
+    T("p_Arbeitgeber_" + n, wert(P + "arbeitgeber") || wert(P + "firma"));
+    T("p_Beschäftigt_seit_" + n, wert(P + "seit"));
+    var vh = wert(P + "verh");
+    C("p_Arbeitsverhältnis_" + n + "_unbefristet", vh === "unbefristet" || wert(P + "besch") === "verbeamtet");
+    if (vh === "befristet") { C("p_Arbeitsverhältnis_" + n + "_befristet_bis_", true); T("p_Arbeitsverhältnis_" + n + "_befristet_bis__txt", datum(wert(P + "verh_bis"))); }
+    if (vh === "Probezeit läuft noch") { C("p_Arbeitsverhältnis_" + n + "_Probezeit_bis_", true); T("p_Arbeitsverhältnis_" + n + "_Probezeit_bis__txt", datum(wert(P + "verh_bis"))); }
+    T("p_Staatsangehörigkeit_" + n, wert(P + "staat"));
+    var au = wert(P + "aufenthalt");
+    C("p_Aufenthaltserlaubnis_" + n + "_unbefristet", au === "unbefristet");
+    if (au === "befristet") { C("p_Aufenthaltserlaubnis_" + n + "_befristet_bis_", true); T("p_Aufenthaltserlaubnis_" + n + "_befristet_bis__txt", datum(wert(P + "aufenthalt_bis"))); }
+    T("p_Steuer_ID_" + n, wert(P + "steuerid"));
+    T("p_Telefon_" + n, wert(P + "telefon"));
+    T("p_Telefon_mobil_" + n, wert(P + "mobil"));
+    T("p_E_Mail_Adresse_" + n, wert(P + "email"));
+
+    // Einkuenfte
+    E("e_Nichtselbstständige_Arbeit_" + n, wert("e_ns_" + n));
+    var x = wert("e_ns_x_" + n); C("e_Nichtselbstständige_Arbeit_" + n + "_12x", x === "12"); C("e_Nichtselbstständige_Arbeit_" + n + "_13x", x === "13");
+    E("e_Selbstständige_Arbeit__" + n, wert("e_s_" + n));
+    E("e_Kindergeld_" + n, wert("e_kg_" + n));
+    E("e_Nettomieteinnahmen__siehe_auch_Nr__5__" + n, wert("e_miete_" + n));
+    var soBetrag = num(wert("e_so_" + n)) + num(wert("e_rente_" + n));
+    var soAus = [num(wert("e_rente_" + n)) ? "Rente/Pension" : "", wert("e_so_aus_" + n)].filter(Boolean).join(", ");
+    T("e_Sonstige_Einkünfte___Nebenverdienst_" + n + "_aus", soAus);
+    if (soBetrag) T("e_Sonstige_Einkünfte___Nebenverdienst_" + n, eur(soBetrag));
+    if (sumE(n)) T("e_Summe_" + n, eur(sumE(n)));
+    // Rente
+    var rb = wert("r_beginn_" + n);
+    C("r_Voraussichtlicher_Rentenbeginn_" + n + "_im_Alter_von_67_Jahren", rb === "mit 67 Jahren");
+    if (rb === "in einem anderen Alter") { C("r_Voraussichtlicher_Rentenbeginn_" + n + "_im_Alter_von", true); T("r_Voraussichtlicher_Rentenbeginn_" + n + "_im_Alter_von_txt", wert("r_alter_" + n)); }
+    E("r_Voraussichtliche_Rentenhöhe__lt__Rentenberechnung__" + n, wert("r_hoehe_" + n));
+    E("r_Sonstige_Einnahmen_im_Rentenalter_" + n, wert("r_so_" + n));
+    // Ausgaben
+    E("a_Kaltmiete_" + n, wert("miete_" + n));
+    E("a_Private_Krankenversicherung_" + n, wert("pkv_" + n));
+    E("a_Ratenkredite___Darlehen__siehe_auch_Nr__7__" + n, wert("raten_" + n));
+    E("a_Leasingraten_" + n, wert("leasing_" + n));
+    E("a_Sparraten_" + n, wert("spar_" + n));
+    E("a_Versicherungsbeiträge_" + n, wert("versich_" + n));
+    E("a_Sonstige_Leistungen__z__B__Unterhalt__" + n, wert("unterhalt_" + n));
+    E("a_Sonstige_regelmäßige_Ausgaben_" + n, wert("sonstaus_" + n));
+    if (sumA(n)) T("a_Summe_" + n, eur(sumA(n)));
+    // Erklaerung + Einwilligung
+    var ek = wert("erkl_" + n);
+    C("erkl_Bestehen_oder_bestanden_in_den_letzten_zehn_Jahren_Mahn" + (n === 1 ? "" : "_4"), ek === "nein");
+    C("erkl_Bestehen_oder_bestanden_in_den_letzten_zehn_Jahren_Mahn" + (n === 1 ? "_2" : "_5"), ek === "ja");
+    if (ek === "ja") T("erkl_Bestehen_oder_bestanden_in_den_letzten_zehn_Jahren_Mahn" + (n === 1 ? "_3" : "_6"), wert("erkl_txt_" + n));
+    var ew = wert("einw_" + n);
+    C("einw_Einwilligung_zur_Weitergabe_" + n + "_ja", ew === "ja");
+    C("einw_Einwilligung_zur_Weitergabe_" + n + "_nein", ew === "nein");
+  });
+
+  var gs = {"gesetzlich (Zugewinngemeinschaft)": "gesetzlich__Zugewinngemeinschaft_", "Gütertrennung": "Gütertrennung", "Gütergemeinschaft": "Gütergemeinschaft"}[wert("gueterstand")];
+  C("p_Güterstand_1_" + gs, !!gs);
+
+  var nk = Math.min(4, parseInt(wert("kinder_anzahl"), 10) || 0);
+  for (var k = 1; k <= nk; k++) { T("k_Vorname_" + k, wert("k" + k + "_vorname")); T("k_Geburtsdatum_" + k, datum(wert("k" + k + "_geb"))); }
+  T("s1_ergaenzung", [kinderText(), wert("s1_erg")].filter(Boolean).join("\n"), true);
+  T("s2_ergaenzung", wert("s2_erg"), true);
+  var s3 = [];
+  if (wert("miete_entfaellt")) s3.push("Aktuelle Miete entfaellt kuenftig: " + wert("miete_entfaellt"));
+  if (wert("s3_erg")) s3.push(wert("s3_erg"));
+  T("s3_ergaenzung", s3.join("\n"), true);
+  T("a_Anzahl_privater_Pkw_1", wert("pkw"));
+  if (wert("dienstwagen") === true) { C("a_Anzahl_privater_Pkw_2_davon_Dienstwagen", true); T("a_Anzahl_privater_Pkw_2_davon_Dienstwagen_txt", wert("dienstwagen_n")); }
+
+  var i, n_;
+  n_ = parseInt(wert("bank_anzahl"), 10) || 0;
+  for (i = 1; i <= n_; i++) { T("vb_Kontoinhaber_" + i, inhaberName(wert("b" + i + "_inhaber"))); T("vb_Kreditinstitut_" + i, wert("b" + i + "_inst")); E("vb_Aktueller_Saldo_" + i, wert("b" + i + "_saldo")); T("vb_Fällig_per_" + i, wert("b" + i + "_faellig")); }
+  n_ = parseInt(wert("bs_anzahl"), 10) || 0;
+  for (i = 1; i <= n_; i++) { T("vs_Kontoinhaber_" + i, inhaberName(wert("s" + i + "_inhaber"))); T("vs_Bausparkasse_" + i, wert("s" + i + "_kasse")); E("vs_Bausparsumme_" + i, wert("s" + i + "_summe")); E("vs_Aktueller_Saldo_" + i, wert("s" + i + "_saldo")); T("vs_Zuteilung_per_" + i, wert("s" + i + "_zut")); }
+  n_ = parseInt(wert("vm_anzahl"), 10) || 0;
+  for (i = 1; i <= n_; i++) { T("vo_Inhaber_" + i, inhaberName(wert("v" + i + "_inhaber"))); T("vo_Art_" + i, wert("v" + i + "_art")); E("vo_Wert_" + i, wert("v" + i + "_wert")); }
+  T("s4_ergaenzung", wert("s4_erg"), true);
+  n_ = parseInt(wert("im_anzahl"), 10) || 0;
+  for (i = 1; i <= n_; i++) {
+    var I = "i" + i + "_";
+    T("i_Eigentümer_" + i, inhaberName(wert(I + "eig")));
+    T("i_Immobilienart_" + i, [wert(I + "art"), wert(I + "nutz")].filter(Boolean).join(", "));
+    T("i_Adresse_" + i, wert(I + "adr"), true);
+    T("i_Wohnfläche_" + i, wert(I + "qm")); T("i_Baujahr_" + i, wert(I + "bj"));
+    E("i_Geschätzter_Verkehrswert_" + i, wert(I + "wert")); E("i_Monatl__Mieteinnahmen__kalt__" + i, wert(I + "miete"));
+    E("i_Restschulden__monatl__Raten_siehe_Nr__7__" + i, wert(I + "rest"));
+  }
+  T("s5_ergaenzung", wert("s5_erg"), true);
+  n_ = parseInt(wert("vs_anzahl"), 10) || 0;
+  for (i = 1; i <= n_; i++) {
+    var W = "w" + i + "_";
+    T("v_Versicherungsnehmer_" + i, inhaberName(wert(W + "vn"))); T("v_Versicherungsgesellschaft_" + i, wert(W + "ges"));
+    T("v_Art_der_Versicherung__RV___LV___BU__" + i, wert(W + "art")); E("v_Garantierte_Ablaufleistung_" + i, wert(W + "ablauf"));
+    T("v_Per__Ablaufdatum__" + i, wert(W + "per")); E("v_Aktueller_Rückkaufswert_" + i, wert(W + "rk"));
+  }
+  n_ = parseInt(wert("kr_anzahl"), 10) || 0;
+  for (i = 1; i <= n_; i++) {
+    var K = "c" + i + "_";
+    T("d_Kreditnehmer_" + i, inhaberName(wert(K + "nehmer"))); T("d_Kreditgeber__Kreditinstitut__" + i, wert(K + "geber"));
+    T("d_Verwendungszweck_" + i, wert(K + "zweck")); E("d_Ursprungsdarlehen_" + i, wert(K + "urspr"));
+    E("d_Aktueller_Saldo_" + i, wert(K + "saldo")); E("d_Monatliche_Rate_" + i, wert(K + "rate"));
+    T("d_Zinssatz__p__a___" + i, wert(K + "zins")); T("d_Zinssatz_fest_bis_" + i, wert(K + "fest"));
+  }
+  T("s7_ergaenzung", wert("s7_erg"), true);
+  var bg = wert("buerg");
+  C("sv_Bestehen_Bürgschaften_oder_Verpflichtungen_gegenüber_Drit", bg === "nein");
+  C("sv_Bestehen_Bürgschaften_oder_Verpflichtungen_gegenüber_Drit_2", bg === "ja");
+  if (bg === "ja") T("sv_Bestehen_Bürgschaften_oder_Verpflichtungen_gegenüber_Drit_3", wert("buerg_txt"));
+  T("s9_weitere_angaben", vorhabenText(), true);
+  T("bank_Name_der_Bank_1", wert("bank_name"));
+  T("bank_IBAN_1", wert("iban").toUpperCase());
+  T("ort_datum", [wert("ort"), heute].filter(Boolean).join(", "));
+  T("erfassungsdatum", heute);
+  var fuss = [vollerName(1), "digital erfasst am " + heute].filter(Boolean).join(" · ");
+  ["fusszeile", "fusszeile_2", "fusszeile_3", "fusszeile_4", "fusszeile_5"].forEach(function(nm){ T(nm, fuss); });
+
+  return await doc.save();
+}
+
+function zusammenfassung(){
+  var z = [], zwei = wert("personen") === "2";
+  z.push("Personen: " + (zwei ? "2 (" + vollerName(1) + " / " + vollerName(2) + ")" : "1 (" + vollerName(1) + ")"));
+  [1].concat(zwei ? [2] : []).forEach(function(n){
+    z.push("Person " + n + ": " + [wert("p" + n + "_besch"), wert("p" + n + "_beruf"), wert("p" + n + "_geburtsdatum") && "geb. " + datum(wert("p" + n + "_geburtsdatum"))].filter(Boolean).join(", "));
+  });
+  var e = sumE(1) + (zwei ? sumE(2) : 0), a = sumA(1) + (zwei ? sumA(2) : 0);
+  z.push("Einkuenfte netto/Monat: " + (eur(e) || "0") + " EUR | Ausgaben/Monat: " + (eur(a) || "0") + " EUR");
+  var verm = 0, i;
+  for (i = 1; i <= (parseInt(wert("bank_anzahl"), 10) || 0); i++) verm += num(wert("b" + i + "_saldo"));
+  z.push("Bankguthaben/Wertpapiere gesamt: " + (eur(verm) || "0") + " EUR");
+  z.push("Kinder: " + (wert("kinder_anzahl") || "0") + " | Immobilien: " + (wert("im_anzahl") || "0") + " | Kredite: " + (wert("kr_anzahl") || "0"));
+  var vh = vorhabenText(); if (vh) z.push("", vh);
+  return z.join("\n");
+}
+
+async function absenden(){
+  var fehler = $("sendeFehler"); fehler.classList.add("hidden");
+  function stopp(text, step){ fehler.textContent = text; fehler.classList.remove("hidden"); if (step) { zeige(step); setTimeout(function(){ alert(text); }, 50); } }
+  if (!wert("p1_vorname") || !wert("p1_nachname")) return stopp("Bitte geben Sie mindestens Vor- und Nachname an (Schritt 1).", 1);
+  if (!wert("p1_anrede")) return stopp("Bitte wählen Sie die Anrede (Schritt 1).", 1);
+  if (!wert("einw_1") || (wert("personen") === "2" && !wert("einw_2"))) return stopp("Bitte wählen Sie bei der Einwilligung zur Weitergabe jeweils Ja oder Nein.");
+  if (!$("zustimmung").checked) return stopp("Bitte bestätigen Sie die Richtigkeit Ihrer Angaben und die Datenverarbeitung.");
+  var btn = $("weiter"); btn.disabled = true; btn.textContent = "Wird gesendet …";
+  try {
+    clearTimeout(timer);
+    var pdf = await pdfErstellen();
+    var blob = new Blob([pdf], {type: "application/pdf"});
+    var fd = new FormData();
+    fd.append("action", "submit"); fd.append("t", TOKEN);
+    fd.append("name", [wert("p1_vorname"), wert("p1_nachname")].join(" ").trim());
+    fd.append("zusammenfassung", zusammenfassung());
+    fd.append("pdf", blob, "selbstauskunft.pdf");
+    var j = await fetch(API, {method: "POST", body: fd}).then(function(r){ return r.json(); });
+    if (!j.ok) throw new Error(j.error || "senden");
+    gesendet = true;
+    var link = $("kopieLink");
+    link.href = URL.createObjectURL(blob);
+    link.download = "Selbstauskunft_" + (wert("p1_nachname") || "Kopie").replace(/[^A-Za-zÄÖÜäöüß-]/g, "") + ".pdf";
+    form.classList.add("hidden"); $("fertig").classList.remove("hidden");
+    pill("Übermittelt", "ok");
+    window.scrollTo({top: 0, behavior: "smooth"});
+  } catch (e) {
+    console.error(e);
+    stopp("Das Senden hat leider nicht geklappt. Ihre Angaben sind gespeichert – bitte versuchen Sie es gleich noch einmal oder rufen Sie mich an: 0160 92085192.");
+  }
+  btn.disabled = false; btn.textContent = "Selbstauskunft absenden →";
+}
+
+/* ---------- Termin (Calendly) ---------- */
+var calGeladen = false;
+$("terminBtn").addEventListener("click", function(){
+  var url = CAL_URL + "?hide_gdpr_banner=1&primary_color=2C517F&name=" + encodeURIComponent([wert("p1_vorname"), wert("p1_nachname")].join(" ").trim()) + "&email=" + encodeURIComponent(prefill.email || wert("p1_email"));
+  function oeffnen(){ if (window.Calendly) Calendly.initPopupWidget({url: url}); else window.open(url, "_blank", "noopener"); }
+  if (calGeladen) return oeffnen();
+  calGeladen = true;
+  var css = document.createElement("link"); css.rel = "stylesheet"; css.href = "https://assets.calendly.com/assets/external/widget.css"; document.head.appendChild(css);
+  var js = document.createElement("script"); js.src = "https://assets.calendly.com/assets/external/widget.js"; js.onload = oeffnen; js.onerror = function(){ window.open(url, "_blank", "noopener"); };
+  document.head.appendChild(js);
+});
+window.addEventListener("message", function(e){
+  if (typeof e.origin !== "string" || e.origin.indexOf("calendly.com") === -1) return;
+  if (!e.data || e.data.event !== "calendly.event_scheduled") return;
+  $("terminAngebot").classList.add("hidden"); $("terminOk").classList.remove("hidden");
+  var fd = new FormData(); fd.append("action", "termin"); fd.append("t", TOKEN);
+  fetch(API, {method: "POST", body: fd}).catch(function(){});
+});
+
+/* ---------- Start ---------- */
+if (!/^[a-f0-9]{32}$/.test(TOKEN)) { $("ladeFehler").classList.remove("hidden"); pill("–"); return; }
+function laden(versuch){
+fetch(API + "?t=" + TOKEN, {cache: "no-store"}).then(function(r){ return r.json(); }).then(function(j){
+  if (!j.ok) throw 0;
+  prefill = j.prefill || {};
+  if (j.termin) { $("terminAngebot").classList.add("hidden"); }
+  var d = j.draft || {};
+  var leer = !Object.keys(d).length;
+  if (leer) {
+    var teile = String(prefill.name || "").trim().split(/\s+/);
+    d = {p1_vorname: teile.length > 1 ? teile.slice(0, -1).join(" ") : (teile[0] || ""), p1_nachname: teile.length > 1 ? teile[teile.length - 1] : "", p1_email: prefill.email || "", p1_telefon: prefill.phone || "", p1_staat: "deutsch", p2_staat: "deutsch", personen: "1", p2_gleich: true};
+  }
+  form.classList.remove("hidden");
+  // Zweimal anwenden: erst Anzahl-Felder, dann die dadurch entstandenen Listenfelder
+  anwenden(d);
+  Object.keys(LISTEN).forEach(renderListe);
+  anwenden(d);
+  aktualisieren();
+  if (j.status === "uebermittelt" || j.submitted) {
+    var b = $("bannerErneut");
+    b.innerHTML = "<b>Ihre Selbstauskunft ist bereits bei mir angekommen" + (j.submitted ? " (am " + j.submitted + ")" : "") + ".</b> Aus Datenschutzgründen speichere ich die Angaben danach nicht mehr auf der Website. Wenn sich etwas geändert hat, können Sie hier eine aktualisierte Fassung ausfüllen und erneut senden.";
+    b.classList.remove("hidden");
+  }
+  pill(leer ? "Automatisches Speichern aktiv" : "Entwurf geladen", "ok");
+  zeige(1);
+}).catch(function(){
+  // Direkt nach der Anfrage kann der Datensatz noch einen Moment unterwegs sein
+  if (versuch < 2) return setTimeout(function(){ laden(versuch + 1); }, 2500);
+  $("ladeFehler").classList.remove("hidden"); form.classList.add("hidden"); pill("–");
+});
+}
+laden(0);
+})();
+</script>
+</body>
+</html>

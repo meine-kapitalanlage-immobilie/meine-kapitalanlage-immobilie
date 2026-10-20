@@ -38,6 +38,22 @@ $statusText = [
 $data["terminstatus"] = $statusText[$tstat] ?? "Nur Rueckruf gewuenscht";
 $leadmagnet   = strtolower($data["leadmagnet"] ?? "");
 
+// Persoenlicher Selbstauskunft-Link: Der Browser erzeugt beim Laden der Seite
+// einen Zufalls-Token (32 Hex-Zeichen) und schickt ihn mit. So kennt die
+// Erfolgsseite den Link sofort, auch wenn der Lead erst nach der Buchung kommt.
+$saToken = strtolower(trim((string)($data["sa_token"] ?? "")));
+unset($data["sa_token"]);
+$saNeu = false; $saLink = "";
+if ($leadmagnet === "" && sa_valid_token($saToken)) {
+    $saNeu = sa_create($saToken, $data);
+    if ($rec = sa_load($saToken)) {
+        if ($tstat === "termin_gebucht" && empty($rec["termin_at"])) { $rec["termin_at"] = time(); sa_save($saToken, $rec); }
+        $saLink = sa_link($saToken);
+        $data["sa_link"]  = $saLink;
+        $data["_sa_done"] = sa_is_done($saToken) ? "1" : "";
+    }
+}
+
 // Basis-Validierung (Leitfaden-Download: nur E-Mail noetig)
 if ($leadmagnet === "" && ($name === "" || $phone === "")) {
     http_response_code(400); echo json_encode(["ok" => false, "error" => "input"]); exit;
@@ -51,7 +67,12 @@ if ($terminwunsch === "ja") {
     // Hier gibt es kein Double-Opt-In, also direkt die Bestaetigung an den Lead.
     // Nur beim ersten Eingang - die spaetere Meldung "Termin gebucht" ist ein
     // Statusupdate und soll keine zweite Mail ausloesen.
-    if ($tstat !== "termin_gebucht") lead_send_danke($email, $name);
+    if ($saLink !== "") {
+        // Bestaetigung + Selbstauskunft-Link genau einmal pro Lead, auch wenn direkt gebucht wurde
+        if ($saNeu) lead_send_danke($email, $name, $saLink, $tstat === "termin_gebucht");
+    } elseif ($tstat !== "termin_gebucht") {
+        lead_send_danke($email, $name);
+    }
     echo json_encode(["ok" => true, "confirm" => false]); exit;
 }
 
@@ -79,7 +100,7 @@ if ($leadmagnet !== "" && strtolower($data["direkt"] ?? "") === "ja") {
 if ($leadmagnet === "") {
     lead_notify_robin($data, " (Rueckruf)");
     lead_to_hubspot($data, "entfaellt - Rueckrufbitte direkt ueber das Formular");
-    lead_send_danke($email, $name);
+    if ($saLink === "" || $saNeu) lead_send_danke($email, $name, $saLink, false);
     echo json_encode(["ok" => true, "confirm" => false]); exit;
 }
 

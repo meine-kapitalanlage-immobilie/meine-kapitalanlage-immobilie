@@ -475,6 +475,15 @@ section{padding:84px 0;scroll-margin-top:76px}
 .ok-wa:hover{background:#1FB855}
 .ok-wa svg{flex:none}
 .cal-done{margin-top:22px;border-top:1px solid var(--line);padding-top:28px}
+/* Naechste Schritte nach der Rueckrufbitte: Termin und/oder Selbstauskunft */
+.next2{margin:20px auto 6px;max-width:640px;text-align:center}
+.next2-t{font-size:14.5px;margin-bottom:12px}
+.next2-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;text-align:left}
+.next2-card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:6px}
+.next2-card b{color:var(--ink);font-size:15.5px}
+.next2-card p{font-size:13.5px;color:var(--muted);margin:0}
+.next2-card .btn{width:100%;margin-top:6px}
+.next2-card .klein{font-size:11.5px;margin-top:4px}
 @media(max-width:480px){.ok-actions{flex-direction:column}.ok-actions .btn{width:100%}}
 .form-err{display:none;margin-top:14px;background:#FDECEE;border:1px solid var(--error);color:#8f1626;border-radius:12px;padding:12px 15px;font-size:13.5px}
 .cal-wrap{min-height:640px}
@@ -1774,6 +1783,7 @@ window.MKI_scrollSperre = (function(){
         <input type="hidden" name="form-name" value="kapitalanlage-landingpage">
         <input type="hidden" name="quelle" id="f-quelle" value="kapitalanlage-lp">
         <input type="hidden" name="terminwunsch" id="f-terminwunsch" value="nein">
+        <input type="hidden" name="sa_token" id="f-sa-token" value="">
       </form>
       <div class="form-ok" id="formOk">
         <div class="big">✓</div>
@@ -2828,8 +2838,8 @@ if(_loadCalBtn) _loadCalBtn.addEventListener("click", function(){ calLoaded ? ca
     /* Buchung aus dem Erfolgsfeld der Rueckrufbitte: Bestaetigung dort anzeigen */
     var okT=document.getElementById("okTermin");
     if(okT && (!pT || pT.style.display==="none")){
-      okT.innerHTML='<p style="font-weight:700;color:var(--true-blue)">✓ Termin steht – ich freue mich auf Sie!</p>'+
-        '<p style="font-size:14px;margin-top:4px">Sie bekommen die Bestätigung per E-Mail.</p>';
+      okT.innerHTML='<b>✓ Termin steht – ich freue mich auf Sie!</b>'+
+        '<p>Sie bekommen die Bestätigung per E-Mail.</p>';
       okT.scrollIntoView({behavior:"smooth",block:"center"});
       try{ if(window.dataLayer) dataLayer.push({event:"termin_gebucht"}); }catch(_){}
       return;
@@ -2846,6 +2856,7 @@ if(_loadCalBtn) _loadCalBtn.addEventListener("click", function(){ calLoaded ? ca
     box.style.display="block";
     box.innerHTML='<div class="big">✓</div><h3>Termin steht – ich freue mich auf Sie!</h3>'+
       '<p>Sie bekommen die Bestätigung per E-Mail. Ich melde mich vorab kurz telefonisch, damit wir den Termin bestätigen.</p>';
+    if(mkiSaUrl()) box.innerHTML+='<div class="next2"><p class="next2-t"><b>Optional:</b> Mit Ihrer Selbstauskunft kann ich den Termin schon konkret vorbereiten.</p><div class="next2-grid" style="max-width:340px;margin:0 auto">'+mkiSaKarte()+'</div></div>';
     if(typeof mkiGeschenke==="function") mkiGeschenke(box, "nach_terminbuchung", window.MKI_PATH==="unsicher");
     pT.appendChild(box);
     box.scrollIntoView({behavior:"smooth",block:"center"});
@@ -3047,6 +3058,23 @@ function _calPrefill(){
   return q.length ? "&" + q.join("&") : "";
 }
 
+/* Persoenlicher Link zur digitalen Selbstauskunft: Zufalls-Token, wird mit dem
+   Lead gesendet; der Server legt damit den Datensatz an und verschickt den Link. */
+(function(){
+  var el=document.getElementById("f-sa-token");
+  if(!el || el.value || !window.crypto || !crypto.getRandomValues) return;
+  var a=new Uint8Array(16); crypto.getRandomValues(a);
+  el.value=[].map.call(a,function(b){ return ("0"+b.toString(16)).slice(-2); }).join("");
+})();
+function mkiSaUrl(){ var el=document.getElementById("f-sa-token"); return el && el.value ? "selbstauskunft.html?t="+el.value : ""; }
+function mkiSaKarte(){
+  var u=mkiSaUrl(); if(!u) return "";
+  return '<div id="okSA" class="next2-card"><b>Selbstauskunft ausfüllen</b>'+
+    '<p>Ca. 10 Minuten, jederzeit unterbrechbar – dann kann ich Ihre Möglichkeiten schon vorab konkret durchrechnen.</p>'+
+    '<a class="btn btn-jade btn-lg" href="'+u+'" target="_blank" rel="noopener">Selbstauskunft öffnen</a>'+
+    '<p class="klein">Den persönlichen Link bekommen Sie zusätzlich per E-Mail – Sie können also auch später weitermachen.</p></div>';
+}
+
 function _snapshotLead(){
   var fd = new FormData(_leadForm);
   var arr = []; fd.forEach(function(v,k){ arr.push([k,v]); });
@@ -3145,10 +3173,16 @@ function _sendLead(mode){
       var fo=document.getElementById("formOk");
       fo.innerHTML = '<div class="big">✓</div><h3>Geschafft – ich melde mich bei Ihnen!</h3>'+
         '<p>Ihre Rückrufbitte ist eingegangen. Ich melde mich zeitnah persönlich – in der Regel noch am selben oder am nächsten Werktag. Eine Bestätigung liegt gleich in Ihrem Postfach.</p>'+
-        '<div id="okTermin" style="margin:18px auto 4px;max-width:420px">'+
-          '<p style="margin-bottom:10px"><b>Lieber gleich einen festen Termin?</b></p>'+
-          '<button class="btn btn-jade btn-lg" type="button" id="okTerminBtn">Termin jetzt buchen</button>'+
-          '<p style="font-size:12px;color:var(--muted);margin-top:8px">Optional. Für die Terminbuchung wird <strong>Calendly</strong> geladen (Datenübertragung in die USA möglich), Details in der <a href="datenschutz.html" target="_blank" style="display:inline;color:var(--true-blue)">Datenschutzerklärung</a>.</p>'+
+        '<div class="next2">'+
+          '<p class="next2-t"><b>Möchten Sie die Zeit bis zum Rückruf nutzen?</b><br>Beides ist freiwillig – und in beliebiger Reihenfolge möglich.</p>'+
+          '<div class="next2-grid">'+
+            '<div id="okTermin" class="next2-card"><b>Festen Termin buchen</b>'+
+              '<p>Erstgespräch, 60 Minuten per Video – zu einer Zeit, die Ihnen passt.</p>'+
+              '<button class="btn btn-jade btn-lg" type="button" id="okTerminBtn">Termin jetzt buchen</button>'+
+              '<p class="klein">Für die Terminbuchung wird <strong>Calendly</strong> geladen (Datenübertragung in die USA möglich), Details in der <a href="datenschutz.html" target="_blank" style="display:inline;color:var(--true-blue)">Datenschutzerklärung</a>.</p>'+
+            '</div>'+
+            mkiSaKarte()+
+          '</div>'+
         '</div>'+
         '<p style="margin-top:6px">Sie möchten nicht warten? <a href="tel:+4916092085192" style="display:inline;color:var(--true-blue);font-weight:700">0160 92085192</a></p>';
       mkiGeschenke(fo, "nach_rueckruf", window.MKI_PATH==="unsicher");
@@ -3192,7 +3226,8 @@ document.getElementById("choiceNein").addEventListener("click",function(){ _send
     var pT=document.getElementById("panelT"), fo=document.getElementById("formOk"), f=_leadForm;
     if(pT) pT.style.display="none";
     if(fo && f){
-      fo.innerHTML='<div class="big">✓</div><h3>Geschafft – ich melde mich bei Ihnen!</h3><p>Ihre Rückrufbitte ist eingegangen, ein Termin ist nicht nötig. Sie möchten nicht warten? <a href="tel:+4916092085192" style="display:inline;color:var(--true-blue);font-weight:700">0160 92085192</a></p>';
+      fo.innerHTML='<div class="big">✓</div><h3>Geschafft – ich melde mich bei Ihnen!</h3><p>Ihre Rückrufbitte ist eingegangen, ein Termin ist nicht nötig. Sie möchten nicht warten? <a href="tel:+4916092085192" style="display:inline;color:var(--true-blue);font-weight:700">0160 92085192</a></p>'+
+        (mkiSaUrl() ? '<div class="next2"><div class="next2-grid" style="max-width:340px;margin:0 auto">'+mkiSaKarte()+'</div></div>' : '');
       if(typeof mkiGeschenke==="function") mkiGeschenke(fo, "nach_rueckruf", window.MKI_PATH==="unsicher");
       var pR=document.getElementById("panelR");
       if(pR) pR.style.display="";

@@ -15,8 +15,12 @@ const HUBSPOT_PORTAL_ID = "149537457"; // neues Konto "Immobilie als Kapitalanla
 const HUBSPOT_FORM_GUID = "6192bfac-c361-4efb-af5e-16d19d3cf39b";
 // Deal-Pipeline (Standard-Pipeline "Kapitalanlage")
 const HUBSPOT_PIPELINE        = "default";
-const HUBSPOT_STAGE_LEAD      = "6219734244"; // Lead eingegangen
-const HUBSPOT_STAGE_TERMIN    = "6219734245"; // Termin vereinbart
+// Automatisch gesetzt werden nur die ersten vier Phasen; alles danach
+// (stattgefunden, Folgetermin, eingestellt, Abschluss) pflegt der Berater von Hand.
+const HUBSPOT_STAGE_RUECKRUF    = "6266551534"; // Rueckrufbitte
+const HUBSPOT_STAGE_RUECKRUF_SA = "6266551535"; // Rueckrufbitte inkl. Selbstauskunft
+const HUBSPOT_STAGE_TERMIN      = "6219734245"; // Termin vereinbart
+const HUBSPOT_STAGE_TERMIN_SA   = "6266551536"; // Termin vereinbart inkl. Selbstauskunft
 // Zugangsschluessel der HubSpot Private App liegt NUR auf dem Server in
 // hubspot-config.php (per .gitignore vom Repo ausgeschlossen), Inhalt:
 //   <?php const HUBSPOT_TOKEN = "pat-eu1-...";
@@ -47,6 +51,7 @@ function lead_labels() {
         "nutzung" => "Nutzung", "kaltmiete" => "Aktuelle Kaltmiete (€/Monat)",
         "wunschpreis" => "Wunschpreis (€)", "kaufzeitpunkt" => "Gekauft",
         "verkaufszeitpunkt" => "Verkaufswunsch",
+        "sa_link" => "Persoenlicher Link zur Selbstauskunft",
     ];
 }
 
@@ -110,7 +115,7 @@ function lead_notify_robin($data, $zusatz = "") {
     $labels = lead_labels();
     $zeilen = [];
     foreach ($data as $key => $wert) {
-        if ($key === "bot-field") continue;
+        if ($key === "bot-field" || $key[0] === "_") continue;
         $wert = trim((string)$wert);
         if ($wert === "") continue;
         $label = $labels[$key] ?? ucfirst($key);
@@ -173,30 +178,41 @@ function lead_send_guide_direct($email, $name) {
 
 // Bestaetigung an den Interessenten: Rueckrufbitte ist da + die beiden Geschenke.
 // Wird nach dem Double-Opt-In verschickt bzw. dort, wo kein DOI noetig ist.
-function lead_send_danke($email, $name) {
+function lead_send_danke($email, $name, $saLink = "", $termin = false) {
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return false;
     $anrede = trim((string)$name) !== "" ? "Hallo " . $name . "," : "Hallo,";
     $guide   = LEAD_BASISURL . "/einsteiger-guide-kapitalanlage-2026.pdf";
     $rechner = LEAD_BASISURL . "/rechner.html";
-    $text = $anrede . "\n\n"
-          . "Ihre Rueckrufbitte ist bei mir angekommen - ich melde mich zeitnah persoenlich bei Ihnen.\n"
-          . "In der Regel noch am selben oder am naechsten Werktag.\n\n"
-          . "Bis dahin zwei Dinge, die Sie schon nutzen koennen:\n\n"
-          . "1) Der Einsteiger-Guide 2026 - Immobilie als Kapitalanlage\n"
-          . "   " . $guide . "\n"
-          . "   20 Seiten, verstaendlich erklaert: wie sich eine Anlageimmobilie wirklich rechnet,\n"
-          . "   der ehrliche Vergleich zu ETF, Tagesgeld und Gold, und die haeufigsten Einsteiger-Fehler.\n\n"
-          . "2) Ihr Kapitalanlage-Rechner zum Behalten\n"
-          . "   " . $rechner . "\n"
-          . "   Rendite, Cashflow und Steuerwirkung mit Ihren eigenen Zahlen durchrechnen.\n"
-          . "   Einmal speichern, danach jederzeit offline nutzbar.\n\n"
-          . "Wenn Sie vorher etwas wissen moechten, erreichen Sie mich direkt unter 0160 92085192.\n\n"
-          . "Herzliche Gruesse\n"
-          . "Robin Jaenicke\n"
-          . "Spezialist fuer Kapitalanlage-Immobilien\n"
-          . "Tel. 0160 92085192\n"
-          . "robin.jaenicke@bonnfinanz.de";
-    return lead_mail($email, lead_subject_encode("Ihre Rueckrufbitte ist angekommen - und zwei Dinge vorab"), $text, lead_headers());
+    $text = $anrede . "\n\n";
+    if ($termin) {
+        $text .= "vielen Dank fuer Ihre Terminbuchung - ich freue mich auf unser Gespraech.\n"
+               . "Die Termindetails kommen in einer separaten Bestaetigung von Calendly.\n\n";
+    } else {
+        $text .= "vielen Dank, Ihre Rueckrufbitte ist bei mir eingegangen.\n"
+               . "Ich melde mich kurzfristig persoenlich bei Ihnen - in der Regel noch am selben oder am naechsten Werktag.\n\n";
+    }
+    if ($saLink !== "") {
+        $text .= "IHRE DIGITALE SELBSTAUSKUNFT\n"
+               . "Wenn Sie moechten, koennen Sie schon vorab Ihre Selbstauskunft ausfuellen (ca. 10 Minuten).\n"
+               . "Dann kann ich Ihre Moeglichkeiten zum Gespraech bereits konkret durchrechnen:\n\n"
+               . "   " . $saLink . "\n\n"
+               . "Der Link ist nur fuer Sie bestimmt. Ihre Eingaben werden zwischengespeichert - Sie koennen\n"
+               . "jederzeit unterbrechen, spaeter ueber diesen Link weitermachen und am Ende absenden.\n"
+               . "Bitte leiten Sie diese E-Mail deshalb nicht weiter.\n\n";
+    }
+    $text .= "Uebrigens - zwei Dinge, die Sie schon nutzen koennen:\n"
+           . "- Einsteiger-Guide 2026: " . $guide . "\n"
+           . "- Kapitalanlage-Rechner:  " . $rechner . "\n\n"
+           . "Wenn Sie vorher etwas wissen moechten, erreichen Sie mich direkt unter 0160 92085192.\n\n"
+           . "Herzliche Gruesse\n"
+           . "Robin Jaenicke\n"
+           . "Spezialist fuer Kapitalanlage-Immobilien\n"
+           . "Tel. 0160 92085192\n"
+           . "robin.jaenicke@bonnfinanz.de";
+    $betreff = $termin ? "Ihr Termin ist gebucht - und Ihre Selbstauskunft"
+                       : "Ihre Rueckrufbitte ist eingegangen - ich melde mich kurzfristig";
+    if ($saLink === "") $betreff = $termin ? "Ihr Termin ist gebucht" : "Ihre Rueckrufbitte ist eingegangen";
+    return lead_mail($email, lead_subject_encode($betreff), $text, lead_headers());
 }
 
 // Uebergabe an HubSpot (Forms-API, EU). Ohne GUID passiert nichts.
@@ -244,7 +260,7 @@ function lead_to_hubspot($data, $doi = "bestaetigt") {
     $skip = ["name","email","phone","bot-field","form-name","quelle"];
     $msg = [];
     foreach ($data as $k => $v) {
-        if (in_array($k, $skip, true)) continue;
+        if (in_array($k, $skip, true) || $k[0] === "_") continue;
         $v = trim((string)$v); if ($v === "") continue;
         $msg[] = ($labels[$k] ?? ucfirst($k)) . ": " . $v;
     }
@@ -305,14 +321,33 @@ function hs_api($method, $path, $body = null) {
     return [$code, json_decode((string)$res, true)];
 }
 
-// Legt pro Kontakt genau einen Deal an. Ist schon einer da und wurde inzwischen
-// ein Termin gebucht, wird er von "Lead eingegangen" auf "Termin vereinbart" gehoben.
+// Legt pro Kontakt genau einen Deal an und hebt ihn bei neuen Ereignissen
+// (Termin gebucht, Selbstauskunft uebermittelt) in die passende Phase.
 function lead_hubspot_deal($data) {
-    if (!defined("HUBSPOT_TOKEN") || !function_exists("curl_init")) return;
-    $email = trim((string)($data["email"] ?? ""));
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return;
+    $email  = trim((string)($data["email"] ?? ""));
     $termin = (stripos((string)($data["terminstatus"] ?? ""), "Termin gebucht") !== false);
-    $stage  = $termin ? HUBSPOT_STAGE_TERMIN : HUBSPOT_STAGE_LEAD;
+    $sa     = !empty($data["_sa_done"]);
+    hs_deal_advance($email, (string)($data["name"] ?? ""), $termin, $sa);
+}
+
+// Phase <-> (Termin?, Selbstauskunft?)
+function hs_stage_flags($stage) {
+    $map = [
+        HUBSPOT_STAGE_RUECKRUF    => [false, false],
+        HUBSPOT_STAGE_RUECKRUF_SA => [false, true],
+        HUBSPOT_STAGE_TERMIN      => [true,  false],
+        HUBSPOT_STAGE_TERMIN_SA   => [true,  true],
+    ];
+    return $map[$stage] ?? null; // null = manuell gepflegte Phase, nicht anfassen
+}
+function hs_stage_for($termin, $sa) {
+    if ($termin) return $sa ? HUBSPOT_STAGE_TERMIN_SA : HUBSPOT_STAGE_TERMIN;
+    return $sa ? HUBSPOT_STAGE_RUECKRUF_SA : HUBSPOT_STAGE_RUECKRUF;
+}
+
+function hs_deal_advance($email, $name, $termin, $sa) {
+    if (!defined("HUBSPOT_TOKEN") || !function_exists("curl_init")) return;
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return;
 
     // Kontakt per E-Mail finden oder anlegen (die Formular-Uebergabe fuehrt per E-Mail zusammen)
     [$c, $r] = hs_api("POST", "/crm/v3/objects/contacts/batch/upsert", [
@@ -321,29 +356,84 @@ function lead_hubspot_deal($data) {
     $cid = $r["results"][0]["id"] ?? null;
     if (!$cid) return;
 
-    // Gibt es schon einen Deal zu diesem Kontakt?
     [$c, $r] = hs_api("GET", "/crm/v4/objects/contacts/" . $cid . "/associations/deals");
     $dealId = $r["results"][0]["toObjectId"] ?? null;
     if ($dealId) {
-        if ($termin) {
-            [$c, $d] = hs_api("GET", "/crm/v3/objects/deals/" . $dealId . "?properties=dealstage");
-            if (($d["properties"]["dealstage"] ?? "") === HUBSPOT_STAGE_LEAD) {
-                hs_api("PATCH", "/crm/v3/objects/deals/" . $dealId, ["properties" => ["dealstage" => HUBSPOT_STAGE_TERMIN]]);
-            }
-        }
+        [$c, $d] = hs_api("GET", "/crm/v3/objects/deals/" . $dealId . "?properties=dealstage");
+        $cur   = (string)($d["properties"]["dealstage"] ?? "");
+        $flags = hs_stage_flags($cur);
+        if ($flags === null) return; // Berater hat den Deal schon weitergeschoben
+        $ziel = hs_stage_for($flags[0] || $termin, $flags[1] || $sa);
+        if ($ziel !== $cur) hs_api("PATCH", "/crm/v3/objects/deals/" . $dealId, ["properties" => ["dealstage" => $ziel]]);
         return;
     }
 
-    $name = trim((string)($data["name"] ?? "")) ?: $email;
+    $name = trim($name) ?: $email;
     hs_api("POST", "/crm/v3/objects/deals", [
         "properties" => [
             "dealname"  => $name . " – Kapitalanlage",
             "pipeline"  => HUBSPOT_PIPELINE,
-            "dealstage" => $stage,
+            "dealstage" => hs_stage_for($termin, $sa),
         ],
         "associations" => [[
             "to"    => ["id" => $cid],
             "types" => [["associationCategory" => "HUBSPOT_DEFINED", "associationTypeId" => 3]],
         ]],
     ]);
+}
+
+// ===================== Digitale Selbstauskunft =====================
+// Pro Lead ein persoenlicher Link (selbstauskunft.html?t=TOKEN). Der Entwurf
+// liegt bis zum Absenden in _leads/sa/ (per .htaccess gesperrt) und wird nach
+// dem Absenden geloescht - uebrig bleibt nur der Status.
+const SA_DIR = LEAD_STORE . "/sa";
+
+function sa_valid_token($t) { return is_string($t) && preg_match('/^[a-f0-9]{32}$/', $t); }
+function sa_path($t) { return SA_DIR . "/" . $t . ".json"; }
+function sa_link($t) { return LEAD_BASISURL . "/selbstauskunft.html?t=" . $t; }
+function sa_load($t) {
+    if (!sa_valid_token($t) || !is_file(sa_path($t))) return null;
+    $j = json_decode((string)@file_get_contents(sa_path($t)), true);
+    return is_array($j) ? $j : null;
+}
+function sa_save($t, $rec) {
+    if (!sa_valid_token($t)) return false;
+    if (!is_dir(SA_DIR)) @mkdir(SA_DIR, 0700, true);
+    $rec["updated"] = time();
+    return @file_put_contents(sa_path($t), json_encode($rec, JSON_UNESCAPED_UNICODE), LOCK_EX) !== false;
+}
+// Legt den Datensatz an, falls er noch nicht existiert. true = neu angelegt.
+function sa_create($t, $data) {
+    if (!sa_valid_token($t) || is_file(sa_path($t))) return false;
+    return sa_save($t, [
+        "created" => time(),
+        "status"  => "offen",
+        "lead"    => [
+            "name"  => (string)($data["name"] ?? ""),
+            "email" => (string)($data["email"] ?? ""),
+            "phone" => (string)($data["phone"] ?? ""),
+        ],
+        "draft"   => new stdClass(),
+    ]);
+}
+function sa_is_done($t) { $r = sa_load($t); return $r && ($r["status"] ?? "") === "uebermittelt"; }
+
+// Mail mit Dateianhang (Selbstauskunft-PDF an den Berater)
+function lead_mail_attach($to, $betreff, $text, $replyTo, $dateiname, $bytes) {
+    if (!filter_var($to, FILTER_VALIDATE_EMAIL)) return false;
+    $grenze = "=_mki_" . bin2hex(random_bytes(8));
+    $h  = "From: " . LEAD_ABSENDER . "\r\n";
+    if ($replyTo && filter_var($replyTo, FILTER_VALIDATE_EMAIL)) $h .= "Reply-To: " . $replyTo . "\r\n";
+    $h .= "MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=\"" . $grenze . "\"\r\n";
+    $dn = preg_replace('/[^A-Za-z0-9._-]/', '_', $dateiname);
+    $body  = "--" . $grenze . "\r\n"
+           . "Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n"
+           . $text . "\r\n\r\n"
+           . "--" . $grenze . "\r\n"
+           . "Content-Type: application/pdf; name=\"" . $dn . "\"\r\n"
+           . "Content-Transfer-Encoding: base64\r\n"
+           . "Content-Disposition: attachment; filename=\"" . $dn . "\"\r\n\r\n"
+           . chunk_split(base64_encode($bytes)) . "\r\n"
+           . "--" . $grenze . "--\r\n";
+    return lead_mail($to, $betreff, $body, $h);
 }

@@ -1,5 +1,8 @@
 User-agent: *
 Allow: /
 Disallow: /formular.php
+Disallow: /selbstauskunft.html
+Disallow: /sa-api.php
+Disallow: /selbstauskunft-vorlage.pdf
 
 Sitemap: https://meine-kapitalanlage-immobilie.de/sitemap.xml
